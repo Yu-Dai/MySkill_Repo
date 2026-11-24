@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>頁面標題</title>
+<link rel="stylesheet" href="assets/msp-ui.css">
+<style>
+/* 內容區最大寬度：預設 none，隨視窗伸縮。以閱讀長文為主的頁面可以改成 1280px */
+:root{--content-max:none}
+/* 版面：以下不要改 */
+.masthead{background:var(--navy);color:var(--on-navy)}
+.masthead-in{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;max-width:var(--content-max);margin:0 auto;padding:14px clamp(16px,3vw,48px)}
+.masthead b{font-size:15px;font-weight:600}
+.masthead span{color:var(--on-navy-2);font-size:13px}
+.masthead .segmented{background:var(--navy-2)}
+.masthead .segmented button{color:var(--on-navy-2)}
+.masthead .segmented button[aria-pressed="true"]{background:var(--on-navy);color:var(--navy);box-shadow:none}
+.page{display:flex;flex-direction:column;gap:24px;max-width:var(--content-max);margin:0 auto;padding:clamp(20px,3vw,32px) clamp(16px,3vw,48px) 96px;min-width:0}
+.head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px}
+.head h1{font-size:26px;line-height:1.25}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px 20px}
+.logo-slot{border:0}
+.page>.btn,.page>.menu-wrap,.page>.segmented,.page>.status,.page>.tag{align-self:flex-start}
+/* 在這裡加頁面自己的樣式。顏色只能寫 var(--代號)，不能寫色碼 */
+</style>
+</head>
+<body>
+<!-- 圖示集：assets/icons.html 的內容，不要刪 -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="i-chevron" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4"/></symbol>
+<symbol id="i-search" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></symbol>
+<symbol id="i-plus" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></symbol>
+<symbol id="i-check" viewBox="0 0 16 16"><path d="M3 8.5l3.2 3.2L13 5"/></symbol>
+<symbol id="i-x" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></symbol>
+<symbol id="i-more" viewBox="0 0 16 16"><circle cx="3.5" cy="8" r=".6"/><circle cx="8" cy="8" r=".6"/><circle cx="12.5" cy="8" r=".6"/></symbol>
+<symbol id="i-info" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M8 7.2v3.6M8 5v.2"/></symbol>
+<symbol id="i-alert" viewBox="0 0 16 16"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.5v3M8 11.4v.2"/></symbol>
+<symbol id="i-upload" viewBox="0 0 16 16"><path d="M8 10.5V2.5M4.8 5.5L8 2.5l3.2 3M2.5 10.5v3h11v-3"/></symbol>
+<symbol id="i-file" viewBox="0 0 16 16"><path d="M4 1.8h5l3 3v9.4H4z"/><path d="M9 1.8v3h3"/></symbol>
+<symbol id="i-book" viewBox="0 0 16 16"><path d="M2.5 3h4a1.5 1.5 0 011.5 1.5V13a1.2 1.2 0 00-1.2-1.2H2.5zM13.5 3h-4A1.5 1.5 0 008 4.5V13a1.2 1.2 0 011.2-1.2h4.3z"/></symbol>
+<symbol id="i-grid" viewBox="0 0 16 16"><rect x="2.5" y="2.5" width="4.5" height="4.5" rx="1"/><rect x="9" y="2.5" width="4.5" height="4.5" rx="1"/><rect x="2.5" y="9" width="4.5" height="4.5" rx="1"/><rect x="9" y="9" width="4.5" height="4.5" rx="1"/></symbol>
+<symbol id="i-inbox" viewBox="0 0 16 16"><path d="M2 9l2-5.5h8L14 9v3.5H2z"/><path d="M2 9h3.5l1 1.8h3l1-1.8H14"/></symbol>
+<symbol id="i-pulse" viewBox="0 0 16 16"><path d="M1.5 8h3l1.8-4.5 3 9L11.2 8h3.3"/></symbol>
+<symbol id="i-gear" viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.2"/><path d="M8 1.8v2M8 12.2v2M1.8 8h2M12.2 8h2M3.6 3.6l1.4 1.4M11 11l1.4 1.4M3.6 12.4L5 11M11 5l1.4-1.4"/></symbol>
+<symbol id="i-play" viewBox="0 0 16 16"><path d="M5 3.2l7 4.8-7 4.8z"/></symbol>
+<symbol id="i-calendar" viewBox="0 0 16 16"><rect x="2.2" y="3.2" width="11.6" height="10.6" rx="1.6"/><path d="M2.2 6.6h11.6M5.3 1.8v2.6M10.7 1.8v2.6"/></symbol>
+</svg>
+
+<div class="brand-bar"></div>
+<header class="masthead"><div class="masthead-in">
+  <!-- 在這裡改工具名稱與一句話說明。Logo 位置不要動 -->
+  <div class="row"><div class="logo-chip"><div class="logo-slot"><img src="assets/logo.png" alt=""></div></div><div><b>工具名稱</b><br><span>一句話說明這個工具</span></div></div>
+  <div class="segmented" data-theme-toggle role="group" aria-label="主題"><button type="button" data-value="light" aria-pressed="true">淺色</button><button type="button" data-value="dark" aria-pressed="false">深色</button></div>
+</div></header>
+
+<main class="page">
+  <div class="head">
+    <!-- 在這裡改頁面標題與說明。整頁只能有一個 btn-primary，不需要就刪掉這個按鈕 -->
+    <div><h1>頁面標題</h1><p class="muted">一句話說明這一頁可以做什麼。</p></div>
+    <button class="btn btn-primary"><svg class="icon"><use href="#i-plus"/></svg>主要動作</button>
+  </div>
+
+  <!-- 在這裡放內容：從 references/components.md 複製元件片段 -->
+
+</main>
+
+<!-- 在這裡放對話框（.dialog-backdrop），要放在 </main> 之後 -->
+
+<!-- 腳本順序不要改。沒用到圖表可以刪掉 chart.umd.js 與 msp-chart.js 這兩行 -->
+<script src="assets/vendor/chart.umd.js"></script>
+<script src="assets/msp-ui.js"></script>
+<script src="assets/msp-chart.js"></script>
+<script>
+// 在這裡寫頁面自己的程式
+</script>
+</body>
+</html>

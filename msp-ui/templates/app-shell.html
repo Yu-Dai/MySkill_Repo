@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>頁面標題</title>
+<link rel="stylesheet" href="assets/msp-ui.css">
+<style>
+/* 內容區最大寬度：預設 none，隨視窗伸縮。以閱讀長文為主的頁面可以改成 1280px */
+:root{--content-max:none}
+/* 版面：左側導覽固定，右側內容捲動；窄螢幕時導覽變成頂部橫列。以下不要改 */
+html,body{height:100%}
+.shell{display:grid;grid-template-columns:clamp(208px,16vw,272px) minmax(0,1fr);min-height:calc(100% - 3px)}
+.side{display:flex;flex-direction:column;gap:20px;padding:20px 12px;background:var(--navy);color:var(--on-navy)}
+.brand{display:flex;align-items:center;gap:10px;padding:0 8px;flex:none}
+.brand b{display:block;font-size:14px;line-height:1.3;white-space:nowrap}
+.brand span{font-size:12px;color:var(--on-navy-2)}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav a{position:relative;display:flex;align-items:center;gap:10px;padding:7px 12px;border-radius:var(--r-control);color:var(--on-navy-2);font-weight:500}
+.nav a:hover{background:var(--navy-2);color:var(--on-navy);text-decoration:none}
+.nav a[aria-current="page"]{background:var(--navy-2);color:var(--on-navy)}
+.nav a[aria-current="page"]::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:2px;background:var(--red)}
+.nav .count{margin-left:auto}
+.main{display:flex;flex-direction:column;gap:24px;width:100%;max-width:var(--content-max);padding:20px clamp(16px,2.5vw,40px) 56px;min-width:0}
+.topbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
+.head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px}
+.head h1{font-size:26px;line-height:1.25}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px 20px}
+@media (max-width:820px){
+  .shell{grid-template-columns:minmax(0,1fr);grid-template-rows:auto 1fr}
+  .side{flex-direction:row;align-items:center;gap:12px;padding:10px 16px;overflow-x:auto}
+  .brand span{display:none}
+  .nav{flex-direction:row}
+  .nav a{white-space:nowrap}
+  .nav a[aria-current="page"]::before{left:12px;right:12px;top:auto;bottom:0;width:auto;height:2px}
+  .head h1{font-size:22px}
+}
+.logo-slot{border:0}
+.main>.btn,.main>.menu-wrap,.main>.segmented,.main>.status,.main>.tag{align-self:flex-start}
+/* 在這裡加頁面自己的樣式。顏色只能寫 var(--代號)，不能寫色碼 */
+</style>
+</head>
+<body>
+<!-- 圖示集：assets/icons.html 的內容，不要刪 -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="i-chevron" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4"/></symbol>
+<symbol id="i-search" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></symbol>
+<symbol id="i-plus" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></symbol>
+<symbol id="i-check" viewBox="0 0 16 16"><path d="M3 8.5l3.2 3.2L13 5"/></symbol>
+<symbol id="i-x" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></symbol>
+<symbol id="i-more" viewBox="0 0 16 16"><circle cx="3.5" cy="8" r=".6"/><circle cx="8" cy="8" r=".6"/><circle cx="12.5" cy="8" r=".6"/></symbol>
+<symbol id="i-info" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M8 7.2v3.6M8 5v.2"/></symbol>
+<symbol id="i-alert" viewBox="0 0 16 16"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.5v3M8 11.4v.2"/></symbol>
+<symbol id="i-upload" viewBox="0 0 16 16"><path d="M8 10.5V2.5M4.8 5.5L8 2.5l3.2 3M2.5 10.5v3h11v-3"/></symbol>
+<symbol id="i-file" viewBox="0 0 16 16"><path d="M4 1.8h5l3 3v9.4H4z"/><path d="M9 1.8v3h3"/></symbol>
+<symbol id="i-book" viewBox="0 0 16 16"><path d="M2.5 3h4a1.5 1.5 0 011.5 1.5V13a1.2 1.2 0 00-1.2-1.2H2.5zM13.5 3h-4A1.5 1.5 0 008 4.5V13a1.2 1.2 0 011.2-1.2h4.3z"/></symbol>
+<symbol id="i-grid" viewBox="0 0 16 16"><rect x="2.5" y="2.5" width="4.5" height="4.5" rx="1"/><rect x="9" y="2.5" width="4.5" height="4.5" rx="1"/><rect x="2.5" y="9" width="4.5" height="4.5" rx="1"/><rect x="9" y="9" width="4.5" height="4.5" rx="1"/></symbol>
+<symbol id="i-inbox" viewBox="0 0 16 16"><path d="M2 9l2-5.5h8L14 9v3.5H2z"/><path d="M2 9h3.5l1 1.8h3l1-1.8H14"/></symbol>
+<symbol id="i-pulse" viewBox="0 0 16 16"><path d="M1.5 8h3l1.8-4.5 3 9L11.2 8h3.3"/></symbol>
+<symbol id="i-gear" viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.2"/><path d="M8 1.8v2M8 12.2v2M1.8 8h2M12.2 8h2M3.6 3.6l1.4 1.4M11 11l1.4 1.4M3.6 12.4L5 11M11 5l1.4-1.4"/></symbol>
+<symbol id="i-play" viewBox="0 0 16 16"><path d="M5 3.2l7 4.8-7 4.8z"/></symbol>
+<symbol id="i-calendar" viewBox="0 0 16 16"><rect x="2.2" y="3.2" width="11.6" height="10.6" rx="1.6"/><path d="M2.2 6.6h11.6M5.3 1.8v2.6M10.7 1.8v2.6"/></symbol>
+</svg>
+
+<div class="brand-bar"></div>
+<div class="shell">
+  <aside class="side">
+    <!-- 在這裡改工具名稱。Logo 位置不要動 -->
+    <div class="brand"><div class="logo-chip"><div class="logo-slot"><img src="assets/logo.png" alt=""></div></div><div><b>工具名稱</b><span>副標題</span></div></div>
+    <!-- 在這裡改導覽項目。目前所在的那一項加 aria-current="page"，只能有一項 -->
+    <nav class="nav" aria-label="主要導覽">
+      <a href="#" aria-current="page"><svg class="icon"><use href="#i-grid"/></svg>總覽</a>
+      <a href="#"><svg class="icon"><use href="#i-inbox"/></svg>待處理<span class="count">3</span></a>
+      <a href="#"><svg class="icon"><use href="#i-gear"/></svg>設定</a>
+    </nav>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <nav class="crumbs" aria-label="路徑"><a href="#">工具名稱</a><span>/</span><span aria-current="page">總覽</span></nav>
+      <div class="segmented" data-theme-toggle role="group" aria-label="主題"><button type="button" data-value="light" aria-pressed="true">淺色</button><button type="button" data-value="dark" aria-pressed="false">深色</button></div>
+    </div>
+
+    <div class="head">
+      <!-- 在這裡改頁面標題與說明。整頁只能有一個 btn-primary，不需要就刪掉這個按鈕 -->
+      <div><h1>頁面標題</h1><p class="muted">一句話說明這一頁可以做什麼。</p></div>
+      <button class="btn btn-primary"><svg class="icon"><use href="#i-plus"/></svg>主要動作</button>
+    </div>
+
+    <!-- 在這裡放內容：從 references/components.md 複製元件片段 -->
+
+  </div>
+</div>
+
+<!-- 在這裡放對話框（.dialog-backdrop），要放在 .shell 之後 -->
+
+<!-- 腳本順序不要改。沒用到圖表可以刪掉 chart.umd.js 與 msp-chart.js 這兩行 -->
+<script src="assets/vendor/chart.umd.js"></script>
+<script src="assets/msp-ui.js"></script>
+<script src="assets/msp-chart.js"></script>
+<script>
+// 在這裡寫頁面自己的程式
+</script>
+</body>
+</html>

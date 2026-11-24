@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MSP UI 元件範本</title>
+<link rel="stylesheet" href="../assets/msp-ui.css">
+<style>
+/* 本頁版面 */
+.masthead{background:var(--navy);color:var(--on-navy)}
+.masthead-in{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding:14px clamp(16px,3vw,48px)}
+.masthead b{font-size:15px;font-weight:600}
+.masthead span{color:var(--on-navy-2);font-size:13px}
+.masthead .segmented{background:var(--navy-2)}
+.masthead .segmented button{color:var(--on-navy-2)}
+.masthead .segmented button[aria-pressed="true"]{background:var(--on-navy);color:var(--navy);box-shadow:none}
+.page{display:grid;grid-template-columns:clamp(160px,14vw,220px) minmax(0,1fr);gap:clamp(24px,3vw,48px);padding:32px clamp(16px,3vw,48px) 96px}
+.toc{position:sticky;top:24px;align-self:start;display:flex;flex-direction:column;gap:2px}
+.toc a{position:relative;padding:5px 12px;border-radius:var(--r-control);color:var(--ink-2);font-size:13px}
+.toc a:hover{background:var(--sunken);color:var(--ink);text-decoration:none}
+main{display:flex;flex-direction:column;gap:56px;min-width:0}
+.intro h1{font-size:34px;line-height:1.2;margin-bottom:10px}
+.intro p{max-width:60ch;color:var(--ink-2);font-size:15px}
+.rules{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin-top:28px;border:1px solid var(--line);border-radius:var(--r-box);background:var(--surface);overflow:hidden}
+.rule{padding:18px 20px 20px;display:flex;flex-direction:column;gap:12px;border-right:1px solid var(--line)}
+.rule:last-child{border-right:0}
+.rule-bar{height:3px;width:40px;border-radius:2px}
+.rule h3{font-size:15px}
+.rule p{font-size:13px;color:var(--ink-2);max-width:none}
+.rule-demo{margin-top:auto;padding-top:6px}
+.navdemo{position:relative;display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:var(--r-control);background:var(--sunken);font-weight:500;font-size:13px}
+.navydemo{border-radius:var(--r-control);overflow:hidden;background:var(--navy)}
+.navydemo .navdemo{margin:8px;background:var(--navy-2);color:var(--on-navy)}
+.rules-list{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;max-width:68ch}
+.navdemo::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:2px;background:var(--red)}
+section>h2{font-size:20px;margin-bottom:4px}
+section>.lead{color:var(--ink-2);max-width:64ch;margin-bottom:16px}
+.demo{border:1px solid var(--line);border-radius:var(--r-box);background:var(--surface);padding:20px;display:flex;flex-direction:column;gap:20px}
+.demo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px 20px}
+.cap{font-size:12px;color:var(--ink-3)}
+.swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:12px}
+.sw{border:1px solid var(--line);border-radius:var(--r-control);overflow:hidden;background:var(--surface)}
+.sw i{display:block;height:52px;border-bottom:1px solid var(--line)}
+.sw div{padding:8px 10px;font-size:12px;line-height:1.45}
+.sw b{display:block;font-weight:500;font-size:13px}
+.type-row{display:grid;grid-template-columns:96px minmax(0,1fr);gap:16px;align-items:baseline;padding:10px 0;border-bottom:1px solid var(--line)}
+.type-row:last-child{border-bottom:0}
+@media (max-width:860px){
+  .page{grid-template-columns:minmax(0,1fr)}
+  .toc{position:static;flex-direction:row;flex-wrap:wrap}
+  .toc a{padding:4px 10px;background:var(--sunken)}
+  .rules{grid-template-columns:minmax(0,1fr)}
+  .rule{border-right:0;border-bottom:1px solid var(--line)}
+  .rule:last-child{border-bottom:0}
+  .intro h1{font-size:26px}
+}
+</style>
+</head>
+<body>
+<!-- 圖示：內容來自 assets/icons.html，需直接放在頁面內 -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="i-chevron" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4"/></symbol>
+<symbol id="i-search" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></symbol>
+<symbol id="i-plus" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></symbol>
+<symbol id="i-check" viewBox="0 0 16 16"><path d="M3 8.5l3.2 3.2L13 5"/></symbol>
+<symbol id="i-x" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></symbol>
+<symbol id="i-more" viewBox="0 0 16 16"><circle cx="3.5" cy="8" r=".6"/><circle cx="8" cy="8" r=".6"/><circle cx="12.5" cy="8" r=".6"/></symbol>
+<symbol id="i-info" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M8 7.2v3.6M8 5v.2"/></symbol>
+<symbol id="i-alert" viewBox="0 0 16 16"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.5v3M8 11.4v.2"/></symbol>
+<symbol id="i-upload" viewBox="0 0 16 16"><path d="M8 10.5V2.5M4.8 5.5L8 2.5l3.2 3M2.5 10.5v3h11v-3"/></symbol>
+<symbol id="i-file" viewBox="0 0 16 16"><path d="M4 1.8h5l3 3v9.4H4z"/><path d="M9 1.8v3h3"/></symbol>
+<symbol id="i-book" viewBox="0 0 16 16"><path d="M2.5 3h4a1.5 1.5 0 011.5 1.5V13a1.2 1.2 0 00-1.2-1.2H2.5zM13.5 3h-4A1.5 1.5 0 008 4.5V13a1.2 1.2 0 011.2-1.2h4.3z"/></symbol>
+<symbol id="i-grid" viewBox="0 0 16 16"><rect x="2.5" y="2.5" width="4.5" height="4.5" rx="1"/><rect x="9" y="2.5" width="4.5" height="4.5" rx="1"/><rect x="2.5" y="9" width="4.5" height="4.5" rx="1"/><rect x="9" y="9" width="4.5" height="4.5" rx="1"/></symbol>
+<symbol id="i-inbox" viewBox="0 0 16 16"><path d="M2 9l2-5.5h8L14 9v3.5H2z"/><path d="M2 9h3.5l1 1.8h3l1-1.8H14"/></symbol>
+<symbol id="i-pulse" viewBox="0 0 16 16"><path d="M1.5 8h3l1.8-4.5 3 9L11.2 8h3.3"/></symbol>
+<symbol id="i-gear" viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.2"/><path d="M8 1.8v2M8 12.2v2M1.8 8h2M12.2 8h2M3.6 3.6l1.4 1.4M11 11l1.4 1.4M3.6 12.4L5 11M11 5l1.4-1.4"/></symbol>
+<symbol id="i-play" viewBox="0 0 16 16"><path d="M5 3.2l7 4.8-7 4.8z"/></symbol>
+<symbol id="i-calendar" viewBox="0 0 16 16"><rect x="2.2" y="3.2" width="11.6" height="10.6" rx="1.6"/><path d="M2.2 6.6h11.6M5.3 1.8v2.6M10.7 1.8v2.6"/></symbol>
+</svg>
+
+<div class="brand-bar"></div>
+<header class="masthead"><div class="masthead-in">
+  <div class="row"><div class="logo-chip"><div class="logo-slot">Logo</div></div><div><b>MSP UI</b><br><span>團隊內部工具的介面規範</span></div></div>
+  <div class="segmented" data-theme-toggle role="group" aria-label="主題"><button type="button" data-value="light" aria-pressed="true">淺色</button><button type="button" data-value="dark" aria-pressed="false">深色</button></div>
+</div></header>
+<div class="page">
+  <nav class="toc" aria-label="章節">
+    <a href="#color">色彩</a>
+    <a href="#type">字體</a>
+    <a href="#theme">主題</a>
+    <a href="#buttons">按鈕</a>
+    <a href="#inputs">文字輸入</a>
+    <a href="#choices">選擇控制</a>
+    <a href="#upload">檔案上傳</a>
+    <a href="#status">標籤與狀態</a>
+    <a href="#nav">導覽</a>
+    <a href="#table">表格</a>
+    <a href="#chart">圖表</a>
+    <a href="#feedback">回饋</a>
+    <a href="#overlay">浮層</a>
+    <a href="#code">程式碼</a>
+  </nav>
+
+  <main>
+    <header class="intro">
+      <h1>紅色標示位置，藍色負責操作，深藍承載品牌</h1>
+      <p>品牌色取自 logo：紅色疊在藍色上。介面沿用同樣的關係，深藍底的導覽列上用紅色標出目前位置，內容區保持中性，讓資料好讀。所有元件自行繪製，不使用瀏覽器原生外觀。</p>
+      <div class="rules">
+        <div class="rule">
+          <div class="rule-bar" style="background:var(--red)"></div>
+          <h3>紅色：位置與待辦</h3>
+          <p>目前所在的導覽項目、分頁底線、待處理的數量。不用在按鈕上。</p>
+          <div class="rule-demo"><div class="navdemo">知識庫總覽 <span class="count" style="margin-left:auto">3</span></div></div>
+        </div>
+        <div class="rule">
+          <div class="rule-bar" style="background:var(--blue)"></div>
+          <h3>藍色：所有可以操作的東西</h3>
+          <p>主要按鈕、連結、焦點外框、已選取的狀態與進度。</p>
+          <div class="rule-demo row" style="gap:14px">
+            <button class="btn btn-primary btn-sm" data-toast="已開始匯入 nt36xxx_spec.md">開始匯入</button>
+            <label class="switch"><input type="checkbox" checked id="r-sw"><span class="track"></span></label>
+            <div class="progress" style="flex:1;min-width:40px"><i style="width:62%"></i></div>
+          </div>
+        </div>
+        <div class="rule">
+          <div class="brand-bar" style="width:100%;border-radius:2px"></div>
+          <h3>紅藍並用：品牌面</h3>
+          <p>深藍底只用在導覽列與頁首，上面搭配紅色標記。頁面最上方固定一條雙色線。</p>
+          <div class="rule-demo"><div class="navydemo"><div class="navdemo">總覽</div></div></div>
+        </div>
+      </div>
+    </header>
+
+    <section id="color">
+      <h2>色彩</h2>
+      <p class="lead">品牌紅與品牌藍取自 logo，深藍和操作用的藍由品牌藍延伸。中性色略帶藍調。語意色（成功、警告、錯誤）與品牌色分開：錯誤用較暗的紅，並且一定搭配圖示與文字。</p>
+      <div class="swatches">
+        <div class="sw"><i style="background:var(--red)"></i><div><b>品牌紅</b><span class="mono faint">--red</span></div></div>
+        <div class="sw"><i style="background:var(--blue)"></i><div><b>品牌藍</b><span class="mono faint">--blue</span></div></div>
+        <div class="sw"><i style="background:var(--navy)"></i><div><b>品牌深藍</b><span class="mono faint">--navy</span></div></div>
+        <div class="sw"><i style="background:var(--blue-solid)"></i><div><b>主要動作</b><span class="mono faint">--blue-solid</span></div></div>
+        <div class="sw"><i style="background:var(--ink)"></i><div><b>主要文字</b><span class="mono faint">--ink</span></div></div>
+        <div class="sw"><i style="background:var(--ink-2)"></i><div><b>次要文字</b><span class="mono faint">--ink-2</span></div></div>
+        <div class="sw"><i style="background:var(--ink-3)"></i><div><b>輔助文字</b><span class="mono faint">--ink-3</span></div></div>
+        <div class="sw"><i style="background:var(--paper)"></i><div><b>頁面底色</b><span class="mono faint">--paper</span></div></div>
+        <div class="sw"><i style="background:var(--surface)"></i><div><b>容器</b><span class="mono faint">--surface</span></div></div>
+        <div class="sw"><i style="background:var(--sunken)"></i><div><b>凹陷</b><span class="mono faint">--sunken</span></div></div>
+        <div class="sw"><i style="background:var(--line-strong)"></i><div><b>邊線</b><span class="mono faint">--line-strong</span></div></div>
+        <div class="sw"><i style="background:var(--ok)"></i><div><b>成功</b><span class="mono faint">--ok</span></div></div>
+        <div class="sw"><i style="background:var(--warn)"></i><div><b>警告</b><span class="mono faint">--warn</span></div></div>
+        <div class="sw"><i style="background:var(--bad)"></i><div><b>錯誤</b><span class="mono faint">--bad</span></div></div>
+      </div>
+    </section>
+
+    <section id="type">
+      <h2>字體</h2>
+      <p class="lead">內文 14px。英數用 IBM Plex Sans，字體檔隨附，不從網路載入。中文用系統內建字體（Windows 為微軟正黑體）。暫存器位址、版本號、檔名、指令一律用等寬字 IBM Plex Mono。</p>
+      <div class="demo" style="gap:0">
+        <div class="type-row"><span class="cap">34 / 600</span><span style="font-size:34px;font-weight:600;line-height:1.2">觸控驅動知識庫</span></div>
+        <div class="type-row"><span class="cap">20 / 600</span><span style="font-size:20px;font-weight:600">匯入進度與檢索測試</span></div>
+        <div class="type-row"><span class="cap">16 / 600</span><span style="font-size:16px;font-weight:600">建立知識庫</span></div>
+        <div class="type-row"><span class="cap">14 / 400</span><span>每次匯入一份來源，完成後自動更新索引並執行檢索測試。</span></div>
+        <div class="type-row"><span class="cap">13 / 400</span><span class="muted" style="font-size:13px">上次同步於 11 月 20 日，共 214 頁。</span></div>
+        <div class="type-row"><span class="cap">等寬</span><span class="mono">REG_0x3E = 0x5A &nbsp; fw v2.4.17 &nbsp; raw/drv.c:L120-L180</span></div>
+      </div>
+    </section>
+
+    <section id="theme">
+      <h2>主題</h2>
+      <p class="lead">只有淺色與深色兩種。右上角的切換開關就是標準元件。</p>
+      <div class="demo">
+        <ol class="rules-list">
+          <li>只提供淺色與深色，不新增其他主題。</li>
+          <li>顏色只能透過代號取用，元件內不寫死色碼。</li>
+          <li>每個元件都要在兩種主題下各檢查一次對比與狀態。</li>
+          <li>深色不是把淺色反相：底色用帶藍調的深灰，品牌紅藍調亮以維持對比。</li>
+          <li>預設跟隨系統設定；使用者切換後記住選擇。</li>
+          <li>導覽列與頁首在兩種主題下都是深藍底。</li>
+        </ol>
+        <div class="row"><span class="label">切換主題</span><div class="segmented" data-theme-toggle role="group" aria-label="主題"><button type="button" data-value="light" aria-pressed="true">淺色</button><button type="button" data-value="dark" aria-pressed="false">深色</button></div></div>
+      </div>
+    </section>
+
+    <section id="buttons">
+      <h2>按鈕</h2>
+      <p class="lead">文字寫出按下去會發生的事。主要按鈕用品牌藍，每個畫面一個；破壞性動作用錯誤色外框，游標移上才填滿。</p>
+      <div class="demo">
+        <div class="row">
+          <button class="btn btn-primary">儲存設定</button>
+          <button class="btn btn-secondary">取消</button>
+          <button class="btn btn-ghost">略過</button>
+          <button class="btn btn-danger">刪除知識庫</button>
+        </div>
+        <div class="row">
+          <button class="btn btn-primary"><svg class="icon"><use href="#i-plus"/></svg>新增來源</button>
+          <button class="btn btn-secondary btn-sm">重新整理</button>
+          <button class="btn btn-secondary btn-icon" aria-label="更多動作" data-tip="更多動作"><svg class="icon"><use href="#i-more"/></svg></button>
+          <button class="btn btn-primary" aria-disabled="true"><span class="spinner"></span>匯入中</button>
+          <button class="btn btn-secondary" disabled>無法使用</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="inputs">
+      <h2>文字輸入</h2>
+      <p class="lead">標籤在上方，說明在下方。錯誤訊息說明哪裡不對以及怎麼修正。</p>
+      <div class="demo">
+        <div class="demo-grid">
+          <div class="field"><label class="label" for="in-name">知識庫代號</label><input class="input mono" id="in-name" value="touch-driver-linux"><span class="hint">小寫英數與連字號</span></div>
+          <div class="field is-error"><label class="label" for="in-err">頁面名稱</label><input class="input mono" id="in-err" value="Reg Map"><span class="hint">不能有空白或大寫，改成 reg-map</span></div>
+          <div class="field"><label class="label" for="in-search">搜尋</label><div class="input-wrap"><svg class="icon"><use href="#i-search"/></svg><input class="input" id="in-search" type="search" placeholder="關鍵字、別名或暫存器名稱"></div></div>
+          <div class="field"><label class="label" for="in-dis">擁有單位</label><input class="input" id="in-dis" value="驅動一部" disabled></div>
+        </div>
+        <div class="field"><label class="label" for="in-ta">一句話描述</label><textarea class="textarea" id="in-ta">Linux 觸控驅動的移植步驟、暫存器說明與常見問題。</textarea></div>
+      </div>
+    </section>
+
+    <section id="choices">
+      <h2>選擇控制</h2>
+      <p class="lead">選項少於五個且互斥時用分段選擇或單選；選項多用下拉。開關只用在立即生效的設定。日期一律用日期選擇器，今天以紅點標示。</p>
+      <div class="demo">
+        <div class="demo-grid">
+          <div class="field">
+            <span class="label" id="lb-cat">分類</span>
+            <div class="select" data-value="driver">
+              <button class="select-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="lb-cat"><span class="select-value">驅動程式</span><svg class="icon"><use href="#i-chevron"/></svg></button>
+              <ul class="select-menu" role="listbox">
+                <li role="option" data-value="driver" aria-selected="true">驅動程式</li>
+                <li role="option" data-value="fw" aria-selected="false">韌體</li>
+                <li role="option" data-value="spec" aria-selected="false">規格文件</li>
+                <li role="option" data-value="tool" aria-selected="false">工具與腳本</li>
+              </ul>
+            </div>
+          </div>
+          <div class="field">
+            <span class="label" id="lb-date">量測日期</span>
+            <div class="datepicker" data-value="2026-11-20">
+              <button class="select-trigger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-labelledby="lb-date"><span class="select-value mono num">2026-11-20</span><svg class="icon"><use href="#i-calendar"/></svg></button>
+              <div class="calendar" role="dialog" aria-label="選擇日期"></div>
+            </div>
+          </div>
+          <div class="field">
+            <span class="label">檢視範圍</span>
+            <div class="segmented" role="group" aria-label="檢視範圍">
+              <button type="button" aria-pressed="true">全部</button>
+              <button type="button" aria-pressed="false">共享</button>
+              <button type="button" aria-pressed="false">個人</button>
+            </div>
+          </div>
+          <div class="field">
+            <span class="label">報點率上限 <span class="mono num faint"><span id="hz-out">120</span> Hz</span></span>
+            <div class="slider" data-min="60" data-max="240" data-step="10" data-value="120" data-output="#hz-out">
+              <div class="slider-track"></div><div class="slider-fill"></div>
+              <div class="slider-thumb" role="slider" tabindex="0" aria-label="報點率上限"></div>
+            </div>
+          </div>
+        </div>
+        <div class="demo-grid">
+          <div class="stack">
+            <label class="check"><input type="checkbox" id="ck1" checked><span class="box"></span>匯入後執行檢索測試</label>
+            <label class="check"><input type="checkbox" id="ck2"><span class="box"></span>壓縮圖片</label>
+          </div>
+          <div class="stack">
+            <label class="radio"><input type="radio" name="rd" id="rd1" checked><span class="box"></span>內部公開</label>
+            <label class="radio"><input type="radio" name="rd" id="rd2"><span class="box"></span>限本單位</label>
+          </div>
+          <div class="stack">
+            <label class="switch"><input type="checkbox" id="sw1" checked><span class="track"></span>啟動時自動同步</label>
+            <label class="switch"><input type="checkbox" id="sw2"><span class="track"></span>顯示原始來源</label>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="upload">
+      <h2>檔案上傳</h2>
+      <p class="lead">可點選也可拖放。選好的檔案列在下方，檔名用等寬字。</p>
+      <div class="demo">
+        <div class="dropzone" tabindex="0" role="button" data-list="#files">
+          <svg class="icon"><use href="#i-upload"/></svg>
+          <span><b>選擇檔案</b>，或拖放到這裡</span>
+          <span class="hint">只接受文字檔：.md .txt .c .h .cs .html .csv</span>
+          <input type="file" id="up" multiple>
+        </div>
+        <ul class="file-list" id="files"><li><svg class="icon"><use href="#i-file"/></svg><span class="mono">nt36xxx_spec.md</span></li></ul>
+      </div>
+    </section>
+
+    <section id="status">
+      <h2>標籤與狀態</h2>
+      <p class="lead">狀態一定同時有顏色、圓點和文字，不只靠顏色。紅色數字標記只用在待處理的數量。</p>
+      <div class="demo">
+        <div class="row">
+          <span class="status ok">已同步</span>
+          <span class="status info">匯入中</span>
+          <span class="status warn">需檢查</span>
+          <span class="status bad">匯入失敗</span>
+          <span class="status">未掛載</span>
+        </div>
+        <div class="row">
+          <span class="tag">驅動程式</span><span class="tag">韌體</span><span class="tag mono">schema v1</span>
+          <span class="row" style="gap:6px">待處理來源 <span class="count">3</span></span>
+        </div>
+      </div>
+    </section>
+
+    <section id="nav">
+      <h2>導覽</h2>
+      <p class="lead">目前所在的分頁用紅色底線標示，這是紅色在版面上最主要的用途。</p>
+      <div class="demo">
+        <nav class="crumbs" aria-label="路徑"><a href="#nav">知識庫</a><span>/</span><a href="#nav">touch-driver-linux</a><span>/</span><span aria-current="page">匯入紀錄</span></nav>
+        <div>
+          <div class="tabs" role="tablist">
+            <button role="tab" aria-selected="true" data-panel="tp1">頁面</button>
+            <button role="tab" aria-selected="false" data-panel="tp2">原始來源</button>
+            <button role="tab" aria-selected="false" data-panel="tp3">匯入紀錄</button>
+          </div>
+          <p id="tp1" class="muted" style="padding-top:14px">214 頁，分成 6 個分類。</p>
+          <p id="tp2" class="muted" style="padding-top:14px" hidden>38 份原始來源，全部為文字檔。</p>
+          <p id="tp3" class="muted" style="padding-top:14px" hidden>最近一次匯入在 11 月 20 日。</p>
+        </div>
+        <div class="row" style="justify-content:space-between">
+          <span class="cap num">第 21 到 40 筆，共 214 筆</span>
+          <div class="pager" role="navigation" aria-label="分頁"><button>1</button><button aria-current="page">2</button><button>3</button><button>4</button><button>11</button></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="table">
+      <h2>表格</h2>
+      <p class="lead">只有橫線。數字靠右並用等寬數字，位址和數值用等寬字。</p>
+      <div class="panel">
+        <div class="panel-head"><h3>暫存器對照</h3><button class="btn btn-secondary btn-sm">匯出 CSV</button></div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th>位址</th><th>名稱</th><th>說明</th><th class="r">預設值</th><th>狀態</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">0x3E</td><td class="mono">REG_SCAN_RATE</td><td>掃描頻率設定</td><td class="r mono">0x5A</td><td><span class="status ok">已驗證</span></td></tr>
+              <tr><td class="mono">0x41</td><td class="mono">REG_GESTURE_EN</td><td>手勢喚醒開關</td><td class="r mono">0x00</td><td><span class="status ok">已驗證</span></td></tr>
+              <tr><td class="mono">0x52</td><td class="mono">REG_NOISE_TH</td><td>雜訊門檻</td><td class="r mono">0x1C</td><td><span class="status warn">待確認</span></td></tr>
+              <tr><td class="mono">0x7F</td><td class="mono">REG_FW_VER</td><td>韌體版本，唯讀</td><td class="r mono">0x24</td><td><span class="status">唯讀</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="chart">
+      <h2>圖表</h2>
+      <p class="lead">折線與長條用隨附的 Chart.js，一律透過 <code class="inline">MSP.chart</code> 建立，配色與字體由主題決定。第一個序列用品牌藍；紅色只用在門檻線和需要注意的序列。每張圖最多五個序列。</p>
+      <div class="stack" style="gap:16px">
+        <div class="panel">
+          <div class="panel-head"><h3>各頻率雜訊量</h3><span class="status warn">2 個頻點超過門檻</span></div>
+          <div class="panel-body"><div class="chart"><canvas id="ch-line" role="img" aria-label="各頻率雜訊量折線圖，接上充電器時在 120 與 130 kHz 超過門檻"></canvas></div></div>
+        </div>
+        <div class="demo-grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">
+          <div class="panel">
+            <div class="panel-head"><h3>各韌體版本測試失敗數</h3></div>
+            <div class="panel-body"><div class="chart" style="height:200px"><canvas id="ch-bar" role="img" aria-label="各韌體版本測試失敗數長條圖"></canvas></div></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h3>迷你走勢線</h3></div>
+            <div class="table-wrap"><table class="table">
+              <tbody>
+                <tr><td>報點率</td><td class="r mono num">118 Hz</td><td class="r"><svg class="spark" data-values="120,119,121,120,118,119,120,118" role="img" aria-label="報點率走勢，大致持平"></svg></td></tr>
+                <tr><td>平均雜訊</td><td class="r mono num">27</td><td class="r"><svg class="spark" data-values="31,30,29,30,28,28,27,27" role="img" aria-label="平均雜訊走勢，緩慢下降"></svg></td></tr>
+                <tr><td>測試失敗數</td><td class="r mono num">14</td><td class="r"><svg class="spark is-alert" data-values="3,2,4,3,5,8,11,14" role="img" aria-label="測試失敗數走勢，持續上升"></svg></td></tr>
+              </tbody>
+            </table></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>節點差值</h3><span class="mono num faint" id="heat-read">18 Tx × 32 Rx</span></div>
+          <div class="panel-body stack">
+            <div class="heatmap" id="heat" role="img" aria-label="觸控節點差值熱圖，右側中段有一個觸碰點，左下有一小片負值"></div>
+            <div class="heat-legend"><span class="mono">-200</span><i></i><span class="mono">+200</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="feedback">
+      <h2>回饋</h2>
+      <p class="lead">訊息說明發生了什麼以及下一步。空白畫面要提供開始的動作。</p>
+      <div class="demo">
+        <div class="alert info"><svg class="icon"><use href="#i-info"/></svg><div>共享知識庫為唯讀，要修改請聯絡擁有單位。</div></div>
+        <div class="alert warn"><svg class="icon"><use href="#i-alert"/></svg><div>本機快取是 3 天前的版本。連上共享資料夾後會自動更新。</div></div>
+        <div class="alert bad"><svg class="icon"><use href="#i-alert"/></svg><div><b>匯入失敗：</b><span class="mono">spec_v3.pdf</span> 不是文字檔。先用 toMarkdown 轉檔再放進 raw 資料夾。</div></div>
+        <div class="demo-grid">
+          <div class="stack"><div class="row" style="justify-content:space-between"><span>產生頁面</span><span class="mono num faint">7 / 12</span></div><div class="progress"><i style="width:58%"></i></div></div>
+          <div class="stack" aria-label="載入中"><div class="skeleton" style="width:70%"></div><div class="skeleton"></div><div class="skeleton" style="width:45%"></div></div>
+        </div>
+        <div class="empty"><svg class="icon"><use href="#i-inbox"/></svg><b>還沒有任何來源</b><span class="muted">把文字檔放進 raw 資料夾，或從這裡新增。</span><button class="btn btn-primary" data-toast="已新增來源">新增來源</button></div>
+      </div>
+    </section>
+
+    <section id="overlay">
+      <h2>浮層</h2>
+      <p class="lead">只有浮層使用陰影。對話框的確認按鈕重複動作名稱；提示文字不放必要資訊。</p>
+      <div class="demo">
+        <div class="row">
+          <button class="btn btn-secondary" data-open-dialog="dlg-del">開啟對話框</button>
+          <div class="menu-wrap">
+            <button class="btn btn-secondary" data-menu aria-haspopup="menu" aria-expanded="false">動作選單<svg class="icon"><use href="#i-chevron"/></svg></button>
+            <div class="menu" role="menu"><button role="menuitem">重新建立索引</button><button role="menuitem">執行檢查</button><hr><button role="menuitem" class="is-danger">撤銷上次匯入</button></div>
+          </div>
+          <button class="btn btn-secondary" data-tip="快取日期：11 月 20 日">游標移上顯示提示</button>
+          <button class="btn btn-secondary" data-toast="已重新建立索引，共 214 頁">顯示通知</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="code">
+      <h2>程式碼</h2>
+      <p class="lead">區塊用凹陷底色。行內的檔名與指令用 <code class="inline">code.inline</code>。</p>
+      <pre class="code"><span class="c">// 讀取掃描頻率</span>
+<span class="k">static int</span> ts_read_scan_rate(<span class="k">struct</span> ts_data *ts)
+{
+    <span class="k">return</span> ts_reg_read(ts, <span class="v">REG_SCAN_RATE</span>);  <span class="c">/* 0x3E */</span>
+}</pre>
+    </section>
+  </main>
+</div>
+
+<div class="dialog-backdrop" id="dlg-del" role="dialog" aria-modal="true" aria-labelledby="dlg-del-t">
+  <div class="dialog">
+    <div class="dialog-head"><h3 id="dlg-del-t">撤銷上次匯入？</h3><button class="btn btn-ghost btn-icon btn-sm" data-close aria-label="關閉"><svg class="icon"><use href="#i-x"/></svg></button></div>
+    <div class="dialog-body"><p class="muted">會移除 <span class="mono">nt36xxx_spec.md</span> 產生的 12 個頁面，並還原索引。原始來源會保留。</p></div>
+    <div class="dialog-foot"><button class="btn btn-secondary" data-close>保留</button><button class="btn btn-danger" data-close data-toast="已撤銷上次匯入">撤銷匯入</button></div>
+  </div>
+</div>
+<script src="../assets/vendor/chart.umd.js"></script>
+<script src="../assets/msp-ui.js"></script>
+<script src="../assets/msp-chart.js"></script>
+<script>
+(function () {
+  const khz = Array.from({ length: 16 }, (_, i) => (60 + i * 10) + ' kHz');
+  MSP.chart(document.getElementById('ch-line'), {
+    type: 'line', labels: khz, yLabel: '雜訊量',
+    series: [
+      { name: '未接充電器', data: [12, 13, 12, 14, 15, 14, 16, 15, 14, 13, 13, 12, 12, 11, 12, 11] },
+      { name: '接上充電器', data: [18, 20, 22, 25, 31, 38, 46, 44, 33, 27, 24, 22, 21, 20, 19, 19], highlight: true },
+    ],
+    threshold: { value: 40, label: '門檻 40' },
+  });
+  MSP.chart(document.getElementById('ch-bar'), {
+    type: 'bar', labels: ['v2.4.12', 'v2.4.13', 'v2.4.14', 'v2.4.15', 'v2.4.16', 'v2.4.17'],
+    series: [{ name: '失敗數', data: [3, 2, 4, 3, 8, 14] }],
+  });
+  // 範例資料：一個觸碰點、一小片負值、少量雜訊
+  let seed = 7;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const m = Array.from({ length: 18 }, (_, r) => Array.from({ length: 32 }, (_, c) => {
+    const touch = 190 * Math.exp(-((r - 8) ** 2 + (c - 22) ** 2) / 7);
+    const neg = -120 * Math.exp(-((r - 14) ** 2 + (c - 6) ** 2) / 5);
+    return Math.round(touch + neg + (rnd() - 0.5) * 14);
+  }));
+  MSP.heatmap(document.getElementById('heat'), m, { max: 200, rowLabel: 'Tx', colLabel: 'Rx', readout: document.getElementById('heat-read') });
+})();
+</script>
+</body>
+</html>

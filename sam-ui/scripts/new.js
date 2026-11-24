@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /*
- * MSP UI 建立新頁面：複製範本，並把 assets 資料夾放到頁面旁邊。只用 Node 內建模組。
+ * SAM UI 建立新頁面：複製範本，並把 assets 資料夾放到頁面旁邊。只用 Node 內建模組。
  *
  *   node new.js page 輸出路徑.html        單頁（頁首加內容區）
  *   node new.js app-shell 輸出路徑.html   側邊導覽加內容區

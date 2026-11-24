@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /*
- * MSP UI 檢查腳本：檢查 HTML 檔是否違反介面規範。只用 Node 內建模組。
+ * SAM UI 檢查腳本：檢查 HTML 檔是否違反介面規範。只用 Node 內建模組。
  *
  *   node check.js 頁面.html [其他頁面.html ...]
  *   node check.js 資料夾            檢查資料夾內所有 .html
@@ -17,7 +17,7 @@ const path = require('path');
 const RULES = {
   'external-url': {
     why: '執行環境在公司內網，不能連外部網路。外部網址的樣式、腳本、字體、圖片都載不到，頁面會壞掉。',
-    fix: '<link rel="stylesheet" href="assets/msp-ui.css">\n<script src="assets/vendor/chart.umd.js"></script>',
+    fix: '<link rel="stylesheet" href="assets/sam-ui.css">\n<script src="assets/vendor/chart.umd.js"></script>',
     next: '刪掉這個外部網址。樣式、字體、圖表函式庫都已經在 assets/ 內；圖片請存成本機檔案放在頁面旁，用相對路徑。',
   },
   'native-select': {
@@ -57,8 +57,8 @@ const RULES = {
   },
   'native-dialog': {
     why: 'alert()、confirm()、prompt() 是瀏覽器原生視窗，會中斷操作，外觀也不受控制。',
-    fix: "MSP.toast('已儲存設定');            // 通知結果\nMSP.openDialog('dlg-confirm');       // 需要使用者確認或輸入時，開啟頁面上的 .dialog",
-    next: '通知結果改用 MSP.toast(文字)。需要確認或輸入時，改用 references/components.md 的「對話框」。',
+    fix: "SAM.toast('已儲存設定');            // 通知結果\nSAM.openDialog('dlg-confirm');       // 需要使用者確認或輸入時，開啟頁面上的 .dialog",
+    next: '通知結果改用 SAM.toast(文字)。需要確認或輸入時，改用 references/components.md 的「對話框」。',
   },
   'title-attr': {
     why: 'title 屬性的提示是瀏覽器原生外觀，出現很慢，觸控裝置看不到。',
@@ -76,13 +76,13 @@ const RULES = {
     next: '把色碼換成最接近的代號 var(--代號)。完整代號表在 references/theme.md。',
   },
   'no-css': {
-    why: '沒有載入 msp-ui.css，所有元件都不會有樣式。',
-    fix: '<link rel="stylesheet" href="assets/msp-ui.css">',
+    why: '沒有載入 sam-ui.css，所有元件都不會有樣式。',
+    fix: '<link rel="stylesheet" href="assets/sam-ui.css">',
     next: '在 <head> 內加上這一行，並確認 assets 資料夾在頁面旁邊。',
   },
   'missing-file': {
     why: '頁面引用的本機檔案不存在，離線開啟時會載不到。',
-    fix: '頁面.html\nassets/msp-ui.css\nassets/msp-ui.js\nassets/msp-chart.js\nassets/vendor/chart.umd.js\nassets/fonts/…',
+    fix: '頁面.html\nassets/sam-ui.css\nassets/sam-ui.js\nassets/sam-chart.js\nassets/vendor/chart.umd.js\nassets/fonts/…',
     next: '確認路徑沒有打錯。如果缺的是 assets/ 內的檔案，把 skill 資料夾內的 assets 整個複製到頁面旁邊（或重新執行 scripts/new.js）。',
   },
   'missing-symbol': {
@@ -91,7 +91,7 @@ const RULES = {
     next: '改用上面清單裡的圖示名稱。如果頁面缺少整個圖示集，把 assets/icons.html 的全部內容貼在 <body> 開頭。',
   },
   'icon-set': {
-    why: 'msp-ui.js 的通知、日期選擇器、檔案上傳會用到 i-check、i-chevron、i-file 圖示。頁面內缺少時這些元件的圖示會空白。',
+    why: 'sam-ui.js 的通知、日期選擇器、檔案上傳會用到 i-check、i-chevron、i-file 圖示。頁面內缺少時這些元件的圖示會空白。',
     fix: '<body>\n<svg width="0" height="0" style="position:absolute" aria-hidden="true">\n  …assets/icons.html 的全部 <symbol>…\n</svg>',
     next: '把 assets/icons.html 的全部內容原樣貼在 <body> 開頭，不要只挑幾個。',
   },
@@ -107,17 +107,17 @@ const RULES = {
   },
   'raw-chartjs': {
     why: '直接呼叫 Chart.js 會略過主題配色與字體設定，圖表顏色不會跟著主題變。',
-    fix: "MSP.chart(document.getElementById('ch1'), {\n  type: 'line', labels: ['一月', '二月', '三月'],\n  series: [{ name: '數量', data: [3, 5, 4] }],\n});",
-    next: '把 new Chart(…) 改成 MSP.chart(canvas, 設定)。寫法在 references/charts.md。',
+    fix: "SAM.chart(document.getElementById('ch1'), {\n  type: 'line', labels: ['一月', '二月', '三月'],\n  series: [{ name: '數量', data: [3, 5, 4] }],\n});",
+    next: '把 new Chart(…) 改成 SAM.chart(canvas, 設定)。寫法在 references/charts.md。',
   },
   'need-script': {
-    why: '頁面用到需要腳本的元件或 MSP 函式，但沒有載入對應的腳本，元件不會動。',
-    fix: '<script src="assets/vendor/chart.umd.js"></script>   只有用到圖表才需要\n<script src="assets/msp-ui.js"></script>\n<script src="assets/msp-chart.js"></script>          只有用到圖表才需要\n<script> 頁面自己的程式 </script>',
+    why: '頁面用到需要腳本的元件或 SAM 函式，但沒有載入對應的腳本，元件不會動。',
+    fix: '<script src="assets/vendor/chart.umd.js"></script>   只有用到圖表才需要\n<script src="assets/sam-ui.js"></script>\n<script src="assets/sam-chart.js"></script>          只有用到圖表才需要\n<script> 頁面自己的程式 </script>',
     next: '在 </body> 之前依上面的順序補上缺少的 <script>。',
   },
   'script-order': {
-    why: 'msp-ui.js 在載入當下掃描頁面並綁定元件，所以必須放在頁面內容之後；而且它會建立 MSP 物件，順序錯了 MSP.chart 會不見。',
-    fix: '…頁面內容…\n<script src="assets/vendor/chart.umd.js"></script>\n<script src="assets/msp-ui.js"></script>\n<script src="assets/msp-chart.js"></script>\n<script> 頁面自己的程式 </script>\n</body>',
+    why: 'sam-ui.js 在載入當下掃描頁面並綁定元件，所以必須放在頁面內容之後；而且它會建立 SAM 物件，順序錯了 SAM.chart 會不見。',
+    fix: '…頁面內容…\n<script src="assets/vendor/chart.umd.js"></script>\n<script src="assets/sam-ui.js"></script>\n<script src="assets/sam-chart.js"></script>\n<script> 頁面自己的程式 </script>\n</body>',
     next: '把這些 <script> 移到 </body> 之前，並照上面的順序排列。',
   },
   'missing-target': {
@@ -282,7 +282,7 @@ function checkFile(file, opts) {
       if (EXTERNAL.test(u)) addEl('external-url', el, '外部網址：' + u);
       else if (u && !/^\s*(#|data:|blob:|about:|javascript:)/i.test(u) && el.name !== 'use' && !/[{}$]/.test(u)) localRefs.push({ el, u });
     }
-    if (el.name === 'link' && baseName(A.href) === 'msp-ui.css') cssLoaded = true;
+    if (el.name === 'link' && baseName(A.href) === 'sam-ui.css') cssLoaded = true;
 
     // 原生控制項
     if (el.name === 'select') addEl('native-select', el);
@@ -350,7 +350,7 @@ function checkFile(file, opts) {
     }
   }
 
-  if (!cssLoaded) add('no-css', 1, '', '找不到 <link rel="stylesheet" href="…msp-ui.css">');
+  if (!cssLoaded) add('no-css', 1, '', '找不到 <link rel="stylesheet" href="…sam-ui.css">');
   if (!brandBar && els.some(e => e.name === 'body')) add('no-brand-bar', lineOf((els.find(e => e.name === 'body') || { offset: 0 }).offset), '<body>');
 
   // 指向其他元素的屬性
@@ -375,26 +375,26 @@ function checkFile(file, opts) {
   // 腳本載入
   const allJs = jsTexts.join('\n');
   const find = n => scripts.find(s => baseName(s.attrs.src) === n);
-  const sUi = find('msp-ui.js'), sChart = find('msp-chart.js'), sLib = find('chart.umd.js');
+  const sUi = find('sam-ui.js'), sChart = find('sam-chart.js'), sLib = find('chart.umd.js');
   const interactive = els.find(e => ['select', 'datepicker', 'segmented', 'tabs', 'slider', 'dropzone', 'menu-wrap'].some(c => hasClass(e, c)) ||
     ['data-open-dialog', 'data-toast', 'data-theme-toggle', 'data-menu'].some(k => e.attrs[k] !== undefined));
-  const usesMsp = /\bMSP\.\w+/.test(allJs);
+  const usesSam = /\bSAM\.\w+/.test(allJs);
   const canvas = els.find(e => e.name === 'canvas');
   const spark = els.find(e => hasClass(e, 'spark') || hasClass(e, 'heatmap'));
   const body = els.find(e => e.name === 'body') || els[0] || { offset: 0, raw: '' };
-  if (!sUi && (interactive || usesMsp)) add('need-script', lineOf((interactive || body).offset), (interactive || body).raw, '沒有載入 assets/msp-ui.js');
-  if (!sChart && (spark || /\bMSP\.(chart|sparkline|heatmap)\s*\(/.test(allJs))) add('need-script', lineOf((spark || canvas || body).offset), (spark || canvas || body).raw, '用到圖表，但沒有載入 assets/msp-chart.js');
-  if (!sLib && (canvas || /\bMSP\.chart\s*\(/.test(allJs))) add('need-script', lineOf((canvas || body).offset), (canvas || body).raw, '用到圖表，但沒有載入 assets/vendor/chart.umd.js');
+  if (!sUi && (interactive || usesSam)) add('need-script', lineOf((interactive || body).offset), (interactive || body).raw, '沒有載入 assets/sam-ui.js');
+  if (!sChart && (spark || /\bSAM\.(chart|sparkline|heatmap)\s*\(/.test(allJs))) add('need-script', lineOf((spark || canvas || body).offset), (spark || canvas || body).raw, '用到圖表，但沒有載入 assets/sam-chart.js');
+  if (!sLib && (canvas || /\bSAM\.chart\s*\(/.test(allJs))) add('need-script', lineOf((canvas || body).offset), (canvas || body).raw, '用到圖表，但沒有載入 assets/vendor/chart.umd.js');
   if (sUi) {
-    if (closest(sUi, e => e.name === 'head')) addEl('script-order', sUi, 'msp-ui.js 放在 <head> 內');
+    if (closest(sUi, e => e.name === 'head')) addEl('script-order', sUi, 'sam-ui.js 放在 <head> 內');
     else {
       const late = els.find(e => e.offset > sUi.offset && (hasClass(e, 'brand-bar') || ['main', 'header', 'nav', 'aside', 'section', 'table', 'form'].includes(e.name)));
-      if (late) addEl('script-order', sUi, 'msp-ui.js 後面還有頁面內容（第 ' + lineOf(late.offset) + ' 行），那些元件不會被綁定');
+      if (late) addEl('script-order', sUi, 'sam-ui.js 後面還有頁面內容（第 ' + lineOf(late.offset) + ' 行），那些元件不會被綁定');
     }
-    if (sChart && sChart.offset < sUi.offset) addEl('script-order', sChart, 'msp-chart.js 排在 msp-ui.js 前面');
-    if (sLib && sChart && sLib.offset > sChart.offset) addEl('script-order', sLib, 'chart.umd.js 排在 msp-chart.js 後面');
-    const early = scripts.find(s => !s.attrs.src && s.offset < sUi.offset && /\bMSP\.\w+/.test(s.text || ''));
-    if (early) addEl('script-order', early, '頁面自己的程式排在 msp-ui.js 前面，這時 MSP 還不存在');
+    if (sChart && sChart.offset < sUi.offset) addEl('script-order', sChart, 'sam-chart.js 排在 sam-ui.js 前面');
+    if (sLib && sChart && sLib.offset > sChart.offset) addEl('script-order', sLib, 'chart.umd.js 排在 sam-chart.js 後面');
+    const early = scripts.find(s => !s.attrs.src && s.offset < sUi.offset && /\bSAM\.\w+/.test(s.text || ''));
+    if (early) addEl('script-order', early, '頁面自己的程式排在 sam-ui.js 前面，這時 SAM 還不存在');
     for (const id of ['i-check', 'i-chevron', 'i-file']) {
       if (!ids.has(id)) { add('icon-set', lineOf(body.offset), '<body>', '缺少 <symbol id="' + id + '">'); break; }
     }

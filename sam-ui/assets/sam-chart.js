@@ -1,6 +1,6 @@
-/* MSP UI 圖表：Chart.js 薄包裝（需先載入隨附的 chart.umd.js）、迷你走勢線、節點熱圖。配色一律取自主題代號。 */
+/* SAM UI 圖表：Chart.js 薄包裝（需先載入隨附的 chart.umd.js）、迷你走勢線、節點熱圖。配色一律取自主題代號。 */
 (function () {
-  const MSP = window.MSP || (window.MSP = {});
+  const SAM = window.SAM || (window.SAM = {});
   const root = document.documentElement;
   const charts = new Set();
   const tok = n => getComputedStyle(root).getPropertyValue(n).trim();
@@ -11,9 +11,9 @@
 
   // 門檻線：紅色虛線加標籤
   const thresholdPlugin = {
-    id: 'mspThreshold',
+    id: 'samThreshold',
     afterDatasetsDraw(c) {
-      const t = c.options.plugins.mspThreshold;
+      const t = c.options.plugins.samThreshold;
       if (!t || t.value == null) return;
       const y = c.scales.y.getPixelForValue(t.value);
       const { left, right } = c.chartArea;
@@ -45,9 +45,9 @@
     o.plugins.tooltip.titleColor = o.plugins.tooltip.bodyColor = tok('--on-ink');
   }
 
-  /* MSP.chart(canvas, { type:'line'|'bar', labels:[], series:[{name,data,highlight?}], yLabel?, yMin?, yMax?, threshold?:{value,label} })
+  /* SAM.chart(canvas, { type:'line'|'bar', labels:[], series:[{name,data,highlight?}], yLabel?, yMin?, yMax?, threshold?:{value,label} })
      縱軸預設從 0 開始；數值集中在某個範圍時用 yMin、yMax 指定。 */
-  MSP.chart = (canvas, cfg) => {
+  SAM.chart = (canvas, cfg) => {
     if (!window.Chart) return null;
     Chart.defaults.font.family = tok('--font-sans');
     Chart.defaults.font.size = 12;
@@ -77,7 +77,7 @@
           legend: { display: cfg.series.length > 1, align: 'end', labels: { usePointStyle: true, pointStyle: 'circle', boxWidth: 6, boxHeight: 6, padding: 16 } },
           tooltip: { padding: 10, cornerRadius: 6, usePointStyle: true, boxWidth: 8, boxHeight: 8, boxPadding: 4 },
           colors: { enabled: false },
-          mspThreshold: cfg.threshold || {},
+          samThreshold: cfg.threshold || {},
         },
       },
       plugins: [thresholdPlugin],
@@ -92,7 +92,7 @@
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', restyle);
 
   // 迷你走勢線：<svg class="spark" data-values="3,5,4,8"></svg>
-  MSP.sparkline = svg => {
+  SAM.sparkline = svg => {
     const v = svg.dataset.values.split(',').map(Number);
     const W = 96, H = 28, pad = 3, min = Math.min(...v), max = Math.max(...v), span = max - min || 1;
     const pts = v.map((n, i) => [pad + (i * (W - pad * 2)) / (v.length - 1), H - pad - ((n - min) / span) * (H - pad * 2)]);
@@ -101,11 +101,11 @@
     svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
     svg.innerHTML = `<path d="M${pts[0][0]},${H} L${line.replace(/ /g, ' L')} L${last[0]},${H} Z"/><polyline points="${line}"/><circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="2.4"/>`;
   };
-  document.querySelectorAll('svg.spark[data-values]').forEach(MSP.sparkline);
+  document.querySelectorAll('svg.spark[data-values]').forEach(SAM.sparkline);
 
   // 熱圖：負值用藍、正值用紅，深淺代表大小
   // opt：max（顏色最深對應的絕對值，省略時取資料的最大絕對值）、rowLabel、colLabel、format(v, r, c)、readout
-  MSP.heatmap = (el, matrix, opt) => {
+  SAM.heatmap = (el, matrix, opt) => {
     opt = opt || {};
     const max = opt.max || Math.max(1, ...matrix.map(row => Math.max(...row.map(Math.abs))));
     const rowLabel = opt.rowLabel || '列', colLabel = opt.colLabel || '欄';

@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MSP UI 元件範本</title>
-<link rel="stylesheet" href="../assets/msp-ui.css">
+<title>SAM UI 元件範本</title>
+<link rel="stylesheet" href="../assets/sam-ui.css">
 <style>
 /* 本頁版面 */
 .masthead{background:var(--navy);color:var(--on-navy)}
@@ -80,7 +80,7 @@ section>.lead{color:var(--ink-2);max-width:64ch;margin-bottom:16px}
 
 <div class="brand-bar"></div>
 <header class="masthead"><div class="masthead-in">
-  <div class="row"><div class="logo-chip"><div class="logo-slot">Logo</div></div><div><b>MSP UI</b><br><span>團隊內部工具的介面規範</span></div></div>
+  <div class="row"><div class="logo-chip"><div class="logo-slot">Logo</div></div><div><b>SAM UI</b><br><span>團隊內部工具的介面規範</span></div></div>
   <div class="segmented" data-theme-toggle role="group" aria-label="主題"><button type="button" data-value="light" aria-pressed="true">淺色</button><button type="button" data-value="dark" aria-pressed="false">深色</button></div>
 </div></header>
 <div class="page">
@@ -347,7 +347,7 @@ section>.lead{color:var(--ink-2);max-width:64ch;margin-bottom:16px}
 
     <section id="chart">
       <h2>圖表</h2>
-      <p class="lead">折線與長條用隨附的 Chart.js，一律透過 <code class="inline">MSP.chart</code> 建立，配色與字體由主題決定。第一個序列用品牌藍；紅色只用在門檻線和需要注意的序列。每張圖最多五個序列。</p>
+      <p class="lead">折線與長條用隨附的 Chart.js，一律透過 <code class="inline">SAM.chart</code> 建立，配色與字體由主題決定。第一個序列用品牌藍；紅色只用在門檻線和需要注意的序列。每張圖最多五個序列。</p>
       <div class="stack" style="gap:16px">
         <div class="panel">
           <div class="panel-head"><h3>各頻率雜訊量</h3><span class="status warn">2 個頻點超過門檻</span></div>
@@ -430,12 +430,12 @@ section>.lead{color:var(--ink-2);max-width:64ch;margin-bottom:16px}
   </div>
 </div>
 <script src="../assets/vendor/chart.umd.js"></script>
-<script src="../assets/msp-ui.js"></script>
-<script src="../assets/msp-chart.js"></script>
+<script src="../assets/sam-ui.js"></script>
+<script src="../assets/sam-chart.js"></script>
 <script>
 (function () {
   const khz = Array.from({ length: 16 }, (_, i) => (60 + i * 10) + ' kHz');
-  MSP.chart(document.getElementById('ch-line'), {
+  SAM.chart(document.getElementById('ch-line'), {
     type: 'line', labels: khz, yLabel: '雜訊量',
     series: [
       { name: '未接充電器', data: [12, 13, 12, 14, 15, 14, 16, 15, 14, 13, 13, 12, 12, 11, 12, 11] },
@@ -443,7 +443,7 @@ section>.lead{color:var(--ink-2);max-width:64ch;margin-bottom:16px}
     ],
     threshold: { value: 40, label: '門檻 40' },
   });
-  MSP.chart(document.getElementById('ch-bar'), {
+  SAM.chart(document.getElementById('ch-bar'), {
     type: 'bar', labels: ['v2.4.12', 'v2.4.13', 'v2.4.14', 'v2.4.15', 'v2.4.16', 'v2.4.17'],
     series: [{ name: '失敗數', data: [3, 2, 4, 3, 8, 14] }],
   });
@@ -455,7 +455,7 @@ section>.lead{color:var(--ink-2);max-width:64ch;margin-bottom:16px}
     const neg = -120 * Math.exp(-((r - 14) ** 2 + (c - 6) ** 2) / 5);
     return Math.round(touch + neg + (rnd() - 0.5) * 14);
   }));
-  MSP.heatmap(document.getElementById('heat'), m, { max: 200, rowLabel: 'Tx', colLabel: 'Rx', readout: document.getElementById('heat-read') });
+  SAM.heatmap(document.getElementById('heat'), m, { max: 200, rowLabel: 'Tx', colLabel: 'Rx', readout: document.getElementById('heat-read') });
 })();
 </script>
 </body>

@@ -20,7 +20,7 @@
 2. 顏色只能透過代號取用，元件內不寫死色碼。
 3. 每個元件都要在兩種主題下各檢查一次。
 4. 深色不是把淺色反相：底色用帶藍調的深灰，品牌紅藍調亮以維持對比。
-5. 預設跟隨系統設定；使用者切換後記住選擇（`MSP.setTheme`，存在 localStorage）。
+5. 預設跟隨系統設定；使用者切換後記住選擇（`SAM.setTheme`，存在 localStorage）。
 6. 導覽列與頁首在兩種主題下都是深藍底。
 
 切換方式是在 `<html>` 上設定 `data-theme="light"` 或 `data-theme="dark"`。
@@ -41,7 +41,7 @@
   - 不用 `input type="date"`，改用 `.datepicker`
   - 不用 `input type="range"`，改用 `.slider`
   - 不直接顯示 `input type="file"`，改用 `.dropzone`
-  - 不用 `alert()`、`confirm()`、`prompt()`，改用 `.dialog` 與 `MSP.toast`
+  - 不用 `alert()`、`confirm()`、`prompt()`，改用 `.dialog` 與 `SAM.toast`
   - 不用 `title` 屬性當提示，改用 `data-tip`
   - 勾選、單選、開關用 `.check`、`.radio`、`.switch`（內部保留隱藏的 input 以支援鍵盤與表單）
 - 不載入任何外部網址的樣式、腳本、字體、圖片。
@@ -58,7 +58,7 @@
 
 ## 6. 圖表
 
-- 折線與長條一律透過 `MSP.chart` 建立，不直接呼叫 Chart.js。
+- 折線與長條一律透過 `SAM.chart` 建立，不直接呼叫 Chart.js。
 - 序列顏色依序取 `--chart-1` 到 `--chart-5`，第一個是品牌藍。
 - 紅色不當一般序列色，只用在門檻線（`threshold`）和標記為 `highlight` 的序列。
 - 每張圖最多五個序列，超過就拆圖或改用表格。

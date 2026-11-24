@@ -72,7 +72,7 @@
 
 ## 下拉
 
-何時用：選項五個以上，或空間不夠放分段選擇。**不能用 `<select>`**。需要 msp-ui.js。
+何時用：選項五個以上，或空間不夠放分段選擇。**不能用 `<select>`**。需要 sam-ui.js。
 
 ```html
 <div class="field">
@@ -99,7 +99,7 @@ cat.addEventListener('change', e => { console.log(e.detail, cat.dataset.value); 
 
 ## 日期選擇器
 
-何時用：所有日期輸入。**不能用 `input type="date"`**。值的格式是 `YYYY-MM-DD`。需要 msp-ui.js。
+何時用：所有日期輸入。**不能用 `input type="date"`**。值的格式是 `YYYY-MM-DD`。需要 sam-ui.js。
 只支援單一日期；日期區間請放兩個（起、迄）。
 
 ```html
@@ -146,7 +146,7 @@ dp.addEventListener('change', e => { console.log(e.detail, dp.dataset.value); })
 
 ## 分段選擇
 
-何時用：二到四個互斥選項，例如檢視範圍、篩選。需要 msp-ui.js。
+何時用：二到四個互斥選項，例如檢視範圍、篩選。需要 sam-ui.js。
 
 ```html
 <div class="field">
@@ -165,7 +165,7 @@ document.getElementById('seg-scope').addEventListener('change', e => { console.l
 
 ## 滑桿
 
-何時用：在範圍內調整數值。**不能用 `input type="range"`**。需要 msp-ui.js。
+何時用：在範圍內調整數值。**不能用 `input type="range"`**。需要 sam-ui.js。
 `data-output` 指向顯示目前數值的元素。
 
 ```html
@@ -182,7 +182,7 @@ document.getElementById('seg-scope').addEventListener('change', e => { console.l
 
 ## 檔案上傳
 
-何時用：選擇或拖放檔案。`<input type="file">` 一定要放在 `.dropzone` 裡面。需要 msp-ui.js。
+何時用：選擇或拖放檔案。`<input type="file">` 一定要放在 `.dropzone` 裡面。需要 sam-ui.js。
 `data-list` 指向顯示檔名的清單。
 
 ```html
@@ -217,7 +217,7 @@ document.getElementById('seg-scope').addEventListener('change', e => { console.l
 
 ## 分頁籤
 
-何時用：同一頁內切換幾個面板。`data-panel` 填面板的 id；沒選中的面板加 `hidden`。需要 msp-ui.js。
+何時用：同一頁內切換幾個面板。`data-panel` 填面板的 id；沒選中的面板加 `hidden`。需要 sam-ui.js。
 
 ```html
 <div>
@@ -321,21 +321,21 @@ document.getElementById('seg-scope').addEventListener('change', e => { console.l
 
 ## 通知
 
-何時用：動作完成後的簡短回報，3.6 秒後自動消失。**不能用 `alert()`**。需要 msp-ui.js。
+何時用：動作完成後的簡短回報，3.6 秒後自動消失。**不能用 `alert()`**。需要 sam-ui.js。
 
 ```html
 <div class="row"><button class="btn btn-secondary" data-toast="已重新建立索引，共 214 頁">重新建立索引</button></div>
 ```
 
 ```js
-MSP.toast('已儲存設定');
+SAM.toast('已儲存設定');
 ```
 
-文字較長時可以指定停留的毫秒數：`MSP.toast('文字', 8000)`。
+文字較長時可以指定停留的毫秒數：`SAM.toast('文字', 8000)`。
 
 ## 對話框
 
-何時用：需要使用者確認或填資料才能繼續。**不能用 `confirm()`、`prompt()`**。需要 msp-ui.js。
+何時用：需要使用者確認或填資料才能繼續。**不能用 `confirm()`、`prompt()`**。需要 sam-ui.js。
 整段 `.dialog-backdrop` 放在範本標示的對話框位置（內容區之後），不要放在 `.panel` 裡面。
 確認按鈕重複動作名稱（「撤銷匯入」，不是「確定」）。
 
@@ -351,20 +351,20 @@ MSP.toast('已儲存設定');
 </div>
 ```
 
-- 開啟：按鈕加 `data-open-dialog="對話框 id"`，或 `MSP.openDialog('dlg-del')`。
-- 關閉：按鈕加 `data-close`，或 `MSP.closeDialog(document.getElementById('dlg-del'))`。按 Esc 或點背景也會關。
+- 開啟：按鈕加 `data-open-dialog="對話框 id"`，或 `SAM.openDialog('dlg-del')`。
+- 關閉：按鈕加 `data-close`，或 `SAM.closeDialog(document.getElementById('dlg-del'))`。按 Esc 或點背景也會關。
 - 預設寬度 480px，內容較多時在 `.dialog` 上寫 `style="--dialog-w:720px"`。視窗比它窄時會自動縮小。
 - 確認後要做的事，綁在確認按鈕的 `click`：
 
 ```js
-document.getElementById('dlg-del-ok').addEventListener('click', () => { MSP.toast('已撤銷上次匯入'); });
+document.getElementById('dlg-del-ok').addEventListener('click', () => { SAM.toast('已撤銷上次匯入'); });
 ```
 
 含表單與驗證的對話框寫法見 `examples/demo.html` 的「建立知識庫」。
 
 ## 選單
 
-何時用：一個按鈕收納多個次要動作。需要 msp-ui.js。
+何時用：一個按鈕收納多個次要動作。需要 sam-ui.js。
 
 ```html
 <div class="row"><button class="btn btn-secondary">重新整理</button><div class="menu-wrap">

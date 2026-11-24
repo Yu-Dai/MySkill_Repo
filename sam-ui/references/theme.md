@@ -1,6 +1,6 @@
 # 主題與設計代號
 
-所有顏色都定義在 `assets/msp-ui.css`。頁面自己的樣式只能寫 `var(--代號)`，不能寫色碼（`#fff`、`rgb()`、`white`）。
+所有顏色都定義在 `assets/sam-ui.css`。頁面自己的樣式只能寫 `var(--代號)`，不能寫色碼（`#fff`、`rgb()`、`white`）。
 不要在頁面裡重新定義這些代號，也不要新增顏色代號。
 
 ## 主題
@@ -8,7 +8,7 @@
 - 只有淺色與深色。預設跟隨系統設定。
 - 切換方式：`<html data-theme="light">` 或 `<html data-theme="dark">`。不要自己寫，用下面兩種方法之一：
   - 範本裡的主題切換開關（`.segmented` 加 `data-theme-toggle`）。
-  - `MSP.setTheme('light')` 或 `MSP.setTheme('dark')`。選擇會記在 localStorage。
+  - `SAM.setTheme('light')` 或 `SAM.setTheme('dark')`。選擇會記在 localStorage。
 - 導覽列與頁首在兩種主題下都是深藍底。
 - 只要顏色都用代號，元件會自動適應兩種主題，不需要寫 `@media (prefers-color-scheme)`。
 
@@ -35,7 +35,7 @@
 | | `--warn`、`--warn-tint` | 警告 |
 | | `--bad`、`--bad-tint` | 錯誤、刪除 |
 | 反白 | `--on-ink` | 深色底（`--ink`、`--ok`、`--bad`）上的文字 |
-| 圖表 | `--chart-1` 到 `--chart-5` | 由 `MSP.chart` 自動取用，不要手動指定 |
+| 圖表 | `--chart-1` 到 `--chart-5` | 由 `SAM.chart` 自動取用，不要手動指定 |
 | 浮層 | `--shadow` | 陰影，只給選單、對話框、通知 |
 | | `--overlay` | 對話框背後的遮罩 |
 

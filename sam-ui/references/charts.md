@@ -2,18 +2,18 @@
 
 ## 規則
 
-1. 折線與長條一律用 `MSP.chart` 建立。**不能寫 `new Chart(...)`**，也不要自己指定顏色。
+1. 折線與長條一律用 `SAM.chart` 建立。**不能寫 `new Chart(...)`**，也不要自己指定顏色。
 2. 序列顏色自動依序取 `--chart-1` 到 `--chart-5`，第一個是品牌藍。
 3. 紅色只用在門檻線（`threshold`）和需要注意的序列（`highlight: true`）。
 4. 每張圖最多五個序列，超過就拆成兩張圖或改用表格。
 5. 每個 `<canvas>` 都要有 `role="img"` 和說明內容的 `aria-label`。
 6. `<canvas>` 一定要包在 `<div class="chart">` 裡面，高度由 `.chart` 決定（預設 240px）。
-7. 頁面要載入三個腳本，順序是 `chart.umd.js`、`msp-ui.js`、`msp-chart.js`（範本已放好）。
+7. 頁面要載入三個腳本，順序是 `chart.umd.js`、`sam-ui.js`、`sam-chart.js`（範本已放好）。
 
 ## 介面
 
 ```
-MSP.chart(canvas, {
+SAM.chart(canvas, {
   type: 'line' 或 'bar',
   labels: ['橫軸標籤', ...],
   series: [{ name: '序列名稱', data: [數字, ...], highlight: true（可省略） }],
@@ -21,8 +21,8 @@ MSP.chart(canvas, {
   yMin: 100, yMax: 140,                    可省略。縱軸預設從 0 開始；數值集中在某個範圍時才指定
   threshold: { value: 40, label: '門檻 40' }   可省略
 })
-MSP.sparkline(svg)                         讀取 data-values="1,2,3"；頁面載入時已存在的會自動畫
-MSP.heatmap(element, matrix, { max, rowLabel, colLabel, readout })   全部可省略
+SAM.sparkline(svg)                         讀取 data-values="1,2,3"；頁面載入時已存在的會自動畫
+SAM.heatmap(element, matrix, { max, rowLabel, colLabel, readout })   全部可省略
 ```
 
 `data` 的長度要和 `labels` 一樣。主題切換時圖表會自動換色，不用處理。
@@ -37,7 +37,7 @@ MSP.heatmap(element, matrix, { max, rowLabel, colLabel, readout })   全部可�
 ```
 
 ```js
-MSP.chart(document.getElementById('ch-line'), {
+SAM.chart(document.getElementById('ch-line'), {
   type: 'line',
   labels: ['60 kHz', '70 kHz', '80 kHz', '90 kHz', '100 kHz', '110 kHz', '120 kHz', '130 kHz', '140 kHz', '150 kHz'],
   yLabel: '雜訊量',
@@ -61,7 +61,7 @@ MSP.chart(document.getElementById('ch-line'), {
 ```
 
 ```js
-MSP.chart(document.getElementById('ch-bar'), {
+SAM.chart(document.getElementById('ch-bar'), {
   type: 'bar',
   labels: ['v2.4.12', 'v2.4.13', 'v2.4.14', 'v2.4.15', 'v2.4.16', 'v2.4.17'],
   series: [{ name: '失敗數', data: [3, 2, 4, 3, 8, 14] }],
@@ -102,7 +102,7 @@ MSP.chart(document.getElementById('ch-bar'), {
 ```
 
 ```js
-MSP.heatmap(document.getElementById('heat'), [
+SAM.heatmap(document.getElementById('heat'), [
   [2, -3, 1, 0, 4, 12, 8, 1],
   [0, 1, -2, 5, 40, 150, 90, 6],
   [-1, 3, 0, 8, 60, 190, 120, 9],

@@ -74,7 +74,7 @@
 
 做這一頁時，**先刪掉範本 `.head` 裡的主要按鈕**，因為這一頁的主要按鈕是表單最下方的「儲存設定」。
 驗證不通過時：在該 `.field` 加 `is-error`，把 `.hint` 改成怎麼修正，並把焦點移到該欄位。
-儲存成功用 `MSP.toast`。
+儲存成功用 `SAM.toast`。
 
 ```html
 <form class="panel" id="s-form" novalidate>
@@ -140,9 +140,9 @@
     };
     console.log(data);  // 在這裡把 data 送到後端或存檔
     state.className = 'status ok'; state.textContent = '已儲存';
-    MSP.toast('已儲存設定 ' + v);
+    SAM.toast('已儲存設定 ' + v);
   });
-  document.getElementById('s-reset').addEventListener('click', () => { MSP.openDialog('s-dlg'); });
+  document.getElementById('s-reset').addEventListener('click', () => { SAM.openDialog('s-dlg'); });
   document.getElementById('s-dlg-ok').addEventListener('click', () => { location.reload(); });
 })();
 ```

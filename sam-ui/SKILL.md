@@ -1,9 +1,9 @@
 ---
-name: msp-ui
-description: 團隊內部工具的網頁介面規範（MSP UI）。只要是建立或修改 HTML 網頁介面就使用，例如 AI agent 主控台、知識庫管理、測試工具、儀表板、設定表單、資料表頁、含圖表的頁面，或使用者提到 MSP UI、網頁、頁面、介面、前端、dashboard、表單、圖表。提供可直接複製的範本、元件片段、離線可用的樣式與腳本，以及檢查腳本。
+name: sam-ui
+description: 團隊內部工具的網頁介面規範（SAM UI）。只要是建立或修改 HTML 網頁介面就使用，例如 AI agent 主控台、知識庫管理、測試工具、儀表板、設定表單、資料表頁、含圖表的頁面，或使用者提到 SAM UI、網頁、頁面、介面、前端、dashboard、表單、圖表。提供可直接複製的範本、元件片段、離線可用的樣式與腳本，以及檢查腳本。
 ---
 
-# MSP UI
+# SAM UI
 
 這個 skill 讓不同人、不同 AI 做出來的內部工具畫面風格一致。
 做法是「複製範本、貼元件片段、跑檢查」。**不要從零開始寫 HTML，不要自己設計樣式。**
@@ -63,7 +63,7 @@ node "SKILL_DIR/scripts/check.js" 輸出資料夾/檔名.html
 1. **不寫色碼。** 樣式裡的顏色只能寫 `var(--代號)`，例如 `color:var(--ink-2)`。不能寫 `#fff`、`rgb()`、`white`。
 2. **不用瀏覽器原生控制項。** `<select>` 改用 `.select`；`input type="date"` 改用 `.datepicker`；
    `input type="range"` 改用 `.slider`；檔案上傳用 `.dropzone`；勾選、單選、開關用 `.check`、`.radio`、`.switch`。
-3. **不用 `alert()`、`confirm()`、`prompt()`。** 通知用 `MSP.toast('文字')`，確認用 `.dialog`。
+3. **不用 `alert()`、`confirm()`、`prompt()`。** 通知用 `SAM.toast('文字')`，確認用 `.dialog`。
    提示不用 `title` 屬性，用 `data-tip="文字"`。
 4. **不用 emoji 和符號字元。** 圖示只用圖示集的 SVG：`<svg class="icon"><use href="#i-check"/></svg>`。
 5. **不載入外部網址。** `<link>`、`<script>`、`<img>`、`url()` 都只能用本機相對路徑。
@@ -71,15 +71,15 @@ node "SKILL_DIR/scripts/check.js" 輸出資料夾/檔名.html
    按鈕文字寫出會發生的事（「儲存設定」，不是「確定」）。
 7. **紅色不是錯誤色。** 紅色（`--red`）只標示目前位置和待處理數量；錯誤與刪除用 `--bad`；
    可以操作的東西都是藍色。狀態一定同時有文字：`<span class="status ok">已同步</span>`。
-8. **圖表用 `MSP.chart`。** 不寫 `new Chart(...)`。每個 `<canvas>` 要有 `role="img"` 和 `aria-label`。
+8. **圖表用 `SAM.chart`。** 不寫 `new Chart(...)`。每個 `<canvas>` 要有 `role="img"` 和 `aria-label`。
 
 ## JS 介面
 
 ```
-MSP.toast('文字')
-MSP.openDialog('對話框 id')          MSP.closeDialog(對話框元素)
-MSP.setTheme('light' 或 'dark')
-MSP.chart(canvas, { type, labels, series, yLabel, threshold })   詳見 references/charts.md
+SAM.toast('文字')
+SAM.openDialog('對話框 id')          SAM.closeDialog(對話框元素)
+SAM.setTheme('light' 或 'dark')
+SAM.chart(canvas, { type, labels, series, yLabel, threshold })   詳見 references/charts.md
 ```
 
 `.select`、`.datepicker`、`.segmented`、`.tabs` 的值改變時會發出 `change` 事件，值在 `event.detail`：
@@ -90,8 +90,8 @@ document.getElementById('sel-cat').addEventListener('change', e => { console.log
 
 ## 常見錯誤
 
-- 把 `msp-ui.js` 放進 `<head>`：元件不會動。腳本要留在範本原本的位置（`</body>` 前）。
-- 頁面自己的程式寫在 `msp-ui.js` 前面：`MSP` 還不存在。要寫在範本最後的 `<script>` 內。
+- 把 `sam-ui.js` 放進 `<head>`：元件不會動。腳本要留在範本原本的位置（`</body>` 前）。
+- 頁面自己的程式寫在 `sam-ui.js` 前面：`SAM` 還不存在。要寫在範本最後的 `<script>` 內。
 - 頁面載入後才用程式產生 `.select`、`.datepicker`、`.tabs`：不會有行為。這些元件要一開始就寫在 HTML 裡，用 `hidden` 屬性控制顯示。
 - 沒有把 `assets` 放在頁面旁邊：樣式全部消失。用第 1 步的腳本建立頁面就不會發生。
 - 寫死大的 px 寬度（`width:1200px`）：寬螢幕會留白、窄螢幕會出現橫向捲軸。版面預設隨視窗伸縮，寫法見 `references/theme.md` 的「寬度與尺寸」。

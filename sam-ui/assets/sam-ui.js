@@ -1,7 +1,7 @@
-/* MSP UI 互動：自訂下拉、選單、分段、分頁籤、滑桿、對話框、提示訊息、檔案放置區。無外部相依。 */
+/* SAM UI 互動：自訂下拉、選單、分段、分頁籤、滑桿、對話框、提示訊息、檔案放置區。無外部相依。 */
 (function () {
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
-  const MSP = (window.MSP = {});
+  const SAM = (window.SAM = {});
 
   function closeAll(except) {
     $$('.select.is-open,.menu-wrap.is-open,.datepicker.is-open').forEach(el => {
@@ -188,7 +188,7 @@
 
   // 對話框
   let lastFocus = null;
-  MSP.openDialog = id => {
+  SAM.openDialog = id => {
     const d = document.getElementById(id);
     if (!d) return;
     lastFocus = document.activeElement;
@@ -196,24 +196,24 @@
     const f = d.querySelector('input,button,[tabindex]');
     if (f) f.focus();
   };
-  MSP.closeDialog = d => {
+  SAM.closeDialog = d => {
     d.classList.remove('is-open');
     if (lastFocus) lastFocus.focus();
   };
-  $$('[data-open-dialog]').forEach(b => b.addEventListener('click', () => MSP.openDialog(b.dataset.openDialog)));
+  $$('[data-open-dialog]').forEach(b => b.addEventListener('click', () => SAM.openDialog(b.dataset.openDialog)));
   $$('.dialog-backdrop').forEach(d => {
     d.addEventListener('click', e => {
-      if (e.target === d || e.target.closest('[data-close]')) MSP.closeDialog(d);
+      if (e.target === d || e.target.closest('[data-close]')) SAM.closeDialog(d);
     });
   });
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
     const d = document.querySelector('.dialog-backdrop.is-open');
-    if (d) MSP.closeDialog(d); else closeAll();
+    if (d) SAM.closeDialog(d); else closeAll();
   });
 
   // 提示訊息
-  MSP.toast = (msg, ms) => {
+  SAM.toast = (msg, ms) => {
     let stack = document.querySelector('.toast-stack');
     if (!stack) {
       stack = document.createElement('div');
@@ -228,19 +228,19 @@
     stack.appendChild(t);
     setTimeout(() => t.remove(), ms > 0 ? ms : 3600);
   };
-  $$('[data-toast]').forEach(b => b.addEventListener('click', () => MSP.toast(b.dataset.toast)));
+  $$('[data-toast]').forEach(b => b.addEventListener('click', () => SAM.toast(b.dataset.toast)));
 
   // 主題：只有 light 與 dark。順序：使用者選過的 > 頁面指定的 > 系統設定
   const root = document.documentElement;
   const currentTheme = () => root.getAttribute('data-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
   const syncTheme = () => $$('[data-theme-toggle] button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.value === currentTheme())));
-  MSP.setTheme = t => {
+  SAM.setTheme = t => {
     root.setAttribute('data-theme', t === 'dark' ? 'dark' : 'light');
-    try { localStorage.setItem('msp-theme', currentTheme()); } catch (e) {}
+    try { localStorage.setItem('sam-theme', currentTheme()); } catch (e) {}
     syncTheme();
   };
-  try { const saved = localStorage.getItem('msp-theme'); if (saved) root.setAttribute('data-theme', saved); } catch (e) {}
-  $$('[data-theme-toggle] button').forEach(b => b.addEventListener('click', () => MSP.setTheme(b.dataset.value)));
+  try { const saved = localStorage.getItem('sam-theme'); if (saved) root.setAttribute('data-theme', saved); } catch (e) {}
+  $$('[data-theme-toggle] button').forEach(b => b.addEventListener('click', () => SAM.setTheme(b.dataset.value)));
   syncTheme();
 
   // 檔案放置區

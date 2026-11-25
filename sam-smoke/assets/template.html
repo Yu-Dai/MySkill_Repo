@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>灌煙報告</title>
+<style>
+:root{
+  --paper:#F5F6F8; --surface:#FFFFFF; --sunken:#ECEEF2;
+  --line:#DDE1E8; --line-strong:#C3C9D4;
+  --ink:#161B26; --ink-2:#4A5262; --ink-3:#7A8292;
+  --red:#CC1018; --blue:#547CBC; --blue-strong:#3B5F9E; --blue-tint:#EAF0F9;
+  --ok:#1F8A63; --ok-tint:#E4F4EC; --warn:#A86E0A; --warn-tint:#FBF1DC; --bad:#B3261E; --bad-tint:#FBE9E7;
+  --blue-solid:#456DAE; --blue-solid-hover:#3B5F9E; --on-blue:#FFFFFF;
+  --font-sans:"IBM Plex Sans","Microsoft JhengHei","PingFang TC","Noto Sans TC",sans-serif;
+  --font-mono:"IBM Plex Mono",Consolas,"Cascadia Mono",monospace;
+  --r-control:6px; --r-box:10px; --h-control:36px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0F1218; --surface:#171B23; --sunken:#0B0E13;
+    --line:#272D39; --line-strong:#3A4252;
+    --ink:#E8EBF1; --ink-2:#A9B1C0; --ink-3:#737C8D;
+    --red:#E5343B; --blue:#7FA2DB; --blue-strong:#9DB9E6; --blue-tint:#1C2740;
+    --ok:#4CC08F; --ok-tint:#12291F; --warn:#E0A63A; --warn-tint:#2C2210; --bad:#F0736B; --bad-tint:#33181A;
+    --blue-solid:#7FA2DB; --blue-solid-hover:#9DB9E6; --on-blue:#0E1524;
+    color-scheme:dark;
+  }
+}
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--font-sans);font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
+h1,h2,h3,p{margin:0}
+h1,h2,h3{font-weight:600;letter-spacing:-.01em}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.mono{font-family:var(--font-mono);font-size:13px}
+.muted{color:var(--ink-2)} .faint{color:var(--ink-3)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.brand-bar{height:3px;background:linear-gradient(90deg,var(--red) 0 88px,var(--blue) 88px)}
+.wrap{max-width:1280px;margin:0 auto;padding:20px 16px 48px}
+.head{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 16px;margin-bottom:20px}
+.head h1{font-size:20px}
+.label{font-size:12px;color:var(--ink-3);margin-bottom:6px}
+
+.phases{display:grid;grid-template-columns:1fr 2fr 1fr;gap:12px;margin-bottom:24px}
+.phase{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-box);padding:12px}
+.phase h2{font-size:14px}
+.phase .hint{font-size:12px;color:var(--ink-3);margin-bottom:10px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{min-height:32px;padding:4px 12px;border:1px solid var(--line-strong);border-radius:var(--r-control);background:var(--surface);cursor:pointer;font-size:13px;text-align:left;transition:background .12s,border-color .12s}
+.chip:hover{border-color:var(--ink-3);background:var(--sunken)}
+.chip[aria-pressed="true"]{border-color:var(--blue);background:var(--blue-tint);color:var(--blue-strong);font-weight:500}
+.chip.todo{border-style:dashed;color:var(--ink-3)}
+.chip small{display:block;font-size:12px;font-weight:400;color:var(--ink-3)}
+.none{font-size:13px;color:var(--ink-3)}
+
+.journey-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 16px;margin-bottom:4px}
+.journey-head h2{font-size:16px}
+.stats{display:flex;flex-wrap:wrap;gap:6px 20px;font-size:13px;color:var(--ink-2);margin:8px 0 12px}
+.stats b{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+.board{display:flex;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-box);overflow-x:auto;scrollbar-width:thin;scrollbar-color:var(--line-strong) transparent}
+.lanes{position:sticky;left:0;z-index:1;flex:none;width:128px;background:var(--surface);border-right:1px solid var(--line)}
+.lane{height:104px;padding:10px 10px 0 12px;border-bottom:1px solid var(--line)}
+.lane:last-child{border-bottom:0}
+.lane b{display:block;font-size:13px;font-weight:600}
+.lane span{display:block;font-size:12px;color:var(--ink-3);line-height:1.4}
+.track{flex:1 0 auto;overflow:hidden;background:repeating-linear-gradient(to bottom,transparent 0,transparent 103px,var(--line) 103px,var(--line) 104px)}
+svg.flow{display:block}
+.edge{fill:none;stroke:var(--line-strong);stroke-width:1.5;stroke-linejoin:round;stroke-linecap:round}
+.edge.to-fog{stroke-dasharray:3 5}
+.smoke{fill:none;stroke:var(--blue);stroke-width:3;stroke-linejoin:round;stroke-linecap:round;transition:stroke-dashoffset .45s ease-out}
+.node{cursor:pointer}
+.node .shape{fill:var(--surface);stroke:var(--line-strong);stroke-width:1.5;transition:fill .2s,stroke .2s}
+.node .num{font-size:12px;font-family:var(--font-mono);fill:var(--ink-3);text-anchor:middle;dominant-baseline:central}
+.node .title{font-size:13px;fill:var(--ink-2);text-anchor:middle}
+.node .tag{font-size:12px;font-weight:600;text-anchor:middle}
+.node.seen .shape{fill:var(--blue-tint);stroke:var(--blue)}
+.node.seen .num{fill:var(--blue-strong)}
+.node.seen .title{fill:var(--ink)}
+.node.k-end .shape{stroke:var(--ok)} .node.k-end .tag{fill:var(--ok)}
+.node.k-dead .shape{stroke:var(--bad)} .node.k-dead .tag{fill:var(--bad)}
+.node.k-fog .shape{stroke:var(--warn);stroke-dasharray:3 3} .node.k-fog .tag{fill:var(--warn)}
+.node.k-end.seen .shape{fill:var(--ok-tint)}
+.node.k-dead.seen .shape{fill:var(--bad-tint)}
+.node.k-fog.seen .shape{fill:var(--warn-tint)}
+.node.seen.k-end .num,.node.seen.k-dead .num,.node.seen.k-fog .num{fill:var(--ink)}
+.node .ring{fill:none;stroke:var(--red);stroke-width:2;opacity:0;transition:opacity .2s}
+.node.now .ring{opacity:1}
+.node.now .title{fill:var(--ink);font-weight:600}
+
+.detail{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:start;margin-top:12px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-box);padding:16px}
+.detail h3{font-size:16px;margin:2px 0 4px}
+.crumb{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:12px;color:var(--ink-3)}
+.status{display:inline-flex;align-items:center;gap:6px;padding:1px 10px;border-radius:999px;font-size:12px;font-weight:500}
+.status::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.status.end{background:var(--ok-tint);color:var(--ok)}
+.status.dead{background:var(--bad-tint);color:var(--bad)}
+.status.fog{background:var(--warn-tint);color:var(--warn)}
+.loc{margin-top:8px;color:var(--ink-2);overflow-wrap:anywhere}
+.reason{margin-top:10px;padding:8px 12px;border-left:3px solid var(--line-strong);background:var(--sunken);font-size:13px}
+.reason.end{border-color:var(--ok)} .reason.dead{border-color:var(--bad)} .reason.fog{border-color:var(--warn)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+.btn{display:inline-flex;align-items:center;justify-content:center;height:var(--h-control);padding:0 14px;border:1px solid transparent;border-radius:var(--r-control);background:transparent;font-weight:500;white-space:nowrap;cursor:pointer;transition:background .12s,border-color .12s}
+.btn-primary{background:var(--blue-solid);color:var(--on-blue);min-width:112px}
+.btn-primary:hover{background:var(--blue-solid-hover)}
+.btn-secondary{border-color:var(--line-strong);background:var(--surface)}
+.btn-secondary:hover{border-color:var(--ink-3);background:var(--sunken)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.empty{background:var(--surface);border:1px dashed var(--line-strong);border-radius:var(--r-box);padding:24px 16px;color:var(--ink-2)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 20px;margin-top:12px;font-size:12px;color:var(--ink-3)}
+.legend i{display:inline-block;width:10px;height:10px;margin-right:6px;border:1.5px solid;vertical-align:-1px;border-radius:50%}
+.legend .l-seen{border-color:var(--blue);background:var(--blue-tint)}
+.legend .l-now{border-color:var(--red)}
+.legend .l-end{border-color:var(--ok);background:var(--ok-tint)}
+.legend .l-dead{border-color:var(--bad);background:var(--bad-tint);border-radius:2px}
+.legend .l-fog{border-color:var(--warn);border-style:dashed}
+@media (max-width:720px){
+  .phases{grid-template-columns:1fr}
+  .detail{grid-template-columns:1fr}
+  .controls{justify-content:stretch}
+  .controls .btn{flex:1}
+  .lanes{width:84px}
+}
+@media (prefers-reduced-motion:reduce){ .smoke,.node .shape,.node .ring{transition:none} }
+</style>
+</head>
+<body>
+<div class="brand-bar"></div>
+<div class="wrap">
+  <header class="head">
+    <h1 id="p-name">灌煙報告</h1>
+    <span class="muted" id="p-meta"></span>
+  </header>
+
+  <div class="label">生命階段與入口（依程式碼可確定的順序由左到右；同一階段內的入口沒有先後）</div>
+  <section class="phases" id="phases" aria-label="生命階段與入口"></section>
+
+  <section id="journey" aria-live="polite">
+    <div class="journey-head">
+      <h2 id="e-name"></h2>
+      <span class="muted" id="e-trigger"></span>
+    </div>
+    <div class="mono faint" id="e-loc"></div>
+    <div class="stats" id="e-stats"></div>
+
+    <div class="board" id="board" tabindex="0" aria-label="煙的路徑，可左右捲動">
+      <div class="lanes" id="lanes"></div>
+      <div class="track" id="track"><svg class="flow" id="flow" role="img" aria-labelledby="flow-title"><title id="flow-title"></title></svg></div>
+    </div>
+    <div class="legend" id="legend">
+      <span><i class="l-seen"></i>煙走過</span>
+      <span><i class="l-now"></i>目前位置</span>
+      <span><i class="l-end"></i>終點</span>
+      <span><i class="l-dead"></i>死路</span>
+      <span><i class="l-fog"></i>霧：讀碼無法確定</span>
+    </div>
+
+    <div class="detail" id="detail">
+      <div>
+        <div class="crumb"><span id="d-count"></span><span id="d-module"></span><span id="d-from"></span><span class="status" id="d-status" hidden></span></div>
+        <h3 id="d-title"></h3>
+        <p id="d-desc"></p>
+        <div class="loc mono" id="d-loc"></div>
+        <div class="reason" id="d-reason" hidden></div>
+      </div>
+      <div class="controls">
+        <button class="btn btn-secondary" id="b-first" type="button">回到第一步</button>
+        <button class="btn btn-secondary" id="b-prev" type="button">上一步</button>
+        <button class="btn btn-primary" id="b-next" type="button">下一步</button>
+      </div>
+    </div>
+    <div class="empty" id="empty" hidden></div>
+  </section>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var DATA = /*__SMOKE_DATA__*/null;
+  var $ = function (id) { return document.getElementById(id); };
+  var NS = 'http://www.w3.org/2000/svg';
+  var COL = 132, LANE = 104, R = 13, PAD = 66, NODE_Y = 32;
+  var PHASES = [
+    { id: 'boot', name: '啟動', hint: '程式開始執行到準備好為止' },
+    { id: 'run', name: '待命', hint: '等事件發生；每個入口各自觸發' },
+    { id: 'exit', name: '結束', hint: '收尾並停止' }
+  ];
+  var KIND_NAME = { end: '終點', dead: '死路', fog: '霧' };
+
+  if (!DATA) {
+    $('journey').hidden = true;
+    $('phases').textContent = '這是範本檔，還沒有資料。請用 scripts/render.js 產生報告。';
+    return;
+  }
+
+  var modIndex = {};
+  DATA.modules.forEach(function (m, i) { modIndex[m.id] = i; });
+  var traced = DATA.entries.filter(function (e) { return e.steps.length > 0; });
+  var cur = null, pos = 0, nodes = [], smokes = [], parents = [];
+
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text !== undefined) n.textContent = text;
+    return n;
+  }
+  function svg(tag, attrs, text) {
+    var n = document.createElementNS(NS, tag);
+    for (var k in attrs) n.setAttribute(k, attrs[k]);
+    if (text !== undefined) n.textContent = text;
+    return n;
+  }
+  function chunks(text, size) {
+    var out = [], line = '', w = 0;
+    Array.from(text).forEach(function (c) {
+      var cw = c.codePointAt(0) < 0x2E80 ? 0.5 : 1;
+      if (w + cw > size && line) { out.push(line); line = ''; w = 0; }
+      if (line || c !== ' ') { line += c; w += cw; }
+    });
+    if (line) out.push(line);
+    return out;
+  }
+  function kindOf(s) { return s.kind || 'step'; }
+
+  $('p-name').textContent = DATA.project.name + ' 灌煙報告';
+  document.title = DATA.project.name + ' 灌煙報告';
+  var meta = [];
+  if (DATA.project.date) meta.push(DATA.project.date);
+  if (DATA.project.commit) meta.push('commit ' + DATA.project.commit);
+  meta.push('入口 ' + DATA.entries.length + ' 個，已灌煙 ' + traced.length + ' 個');
+  $('p-meta').textContent = meta.join('　');
+
+  PHASES.forEach(function (p) {
+    var box = el('div', 'phase');
+    box.appendChild(el('h2', '', p.name));
+    box.appendChild(el('div', 'hint', p.hint));
+    var chips = el('div', 'chips');
+    var list = DATA.entries.filter(function (e) { return e.phase === p.id; });
+    list.forEach(function (e) {
+      var b = el('button', 'chip' + (e.steps.length ? '' : ' todo'), e.name);
+      b.type = 'button';
+      b.dataset.entry = e.id;
+      b.setAttribute('aria-pressed', 'false');
+      if (!e.steps.length) b.appendChild(el('small', '', '尚未灌煙'));
+      b.addEventListener('click', function () { select(e); });
+      chips.appendChild(b);
+    });
+    if (!list.length) chips.appendChild(el('span', 'none', '程式碼中沒有找到這個階段的入口'));
+    box.appendChild(chips);
+    $('phases').appendChild(box);
+  });
+
+  function select(entry) {
+    cur = entry; pos = 0;
+    document.querySelectorAll('.chip').forEach(function (b) {
+      b.setAttribute('aria-pressed', b.dataset.entry === entry.id ? 'true' : 'false');
+    });
+    $('e-name').textContent = entry.name;
+    $('e-trigger').textContent = '觸發：' + entry.trigger;
+    $('e-loc').textContent = '入口位置 ' + entry.file + ':' + entry.line;
+    var has = entry.steps.length > 0;
+    $('board').hidden = !has; $('detail').hidden = !has; $('legend').hidden = !has; $('e-stats').hidden = !has;
+    $('empty').hidden = has;
+    if (!has) {
+      $('empty').textContent = '這個入口已經盤點到，但還沒有灌煙。請 AI 對「' + entry.name + '」執行灌煙後重新產生報告。';
+      return;
+    }
+    build(entry);
+    show();
+  }
+
+  function build(entry) {
+    var steps = entry.steps, byId = {};
+    steps.forEach(function (s, i) { byId[s.id] = i; });
+    var used = [];
+    steps.forEach(function (s) { var m = modIndex[s.module]; if (used.indexOf(m) < 0) used.push(m); });
+    used.sort(function (a, b) { return a - b; });
+    var row = {};
+    used.forEach(function (m, i) { row[m] = i; });
+
+    var lanes = $('lanes');
+    lanes.textContent = '';
+    used.forEach(function (m) {
+      var d = el('div', 'lane');
+      d.appendChild(el('b', '', DATA.modules[m].name));
+      d.appendChild(el('span', '', DATA.modules[m].desc));
+      lanes.appendChild(d);
+    });
+
+    var W = PAD * 2 + (steps.length - 1) * COL, H = used.length * LANE;
+    var flow = $('flow');
+    while (flow.lastChild && flow.lastChild.id !== 'flow-title') flow.removeChild(flow.lastChild);
+    flow.setAttribute('width', W); flow.setAttribute('height', H);
+    flow.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    $('flow-title').textContent = entry.name + ' 的路徑，共 ' + steps.length + ' 步';
+    $('track').style.height = (H - 1) + 'px';
+
+    var pt = steps.map(function (s, i) {
+      return { x: PAD + i * COL, y: row[modIndex[s.module]] * LANE + NODE_Y, top: row[modIndex[s.module]] * LANE };
+    });
+    var crossings = 0;
+    smokes = []; parents = [];
+    var gEdges = svg('g', {}), gSmoke = svg('g', {}), gNodes = svg('g', {});
+    flow.appendChild(gEdges); flow.appendChild(gSmoke); flow.appendChild(gNodes);
+
+    steps.forEach(function (s, i) {
+      if (i === 0) { smokes.push(null); parents.push(-1); return; }
+      var pi = s.from !== undefined ? byId[s.from] : i - 1;
+      parents.push(pi);
+      var a = pt[pi], b = pt[i], gx = b.x - COL / 2, d;
+      if (steps[pi].module !== s.module) crossings++;
+      if (pi === i - 1) {
+        d = a.y === b.y ? 'M' + (a.x + R) + ' ' + a.y + 'H' + (b.x - R)
+          : 'M' + (a.x + R) + ' ' + a.y + 'H' + gx + 'V' + b.y + 'H' + (b.x - R);
+      } else {
+        var ch = a.top + 6 + (pi % 3) * 4;
+        d = 'M' + a.x + ' ' + (a.y - R) + 'V' + ch + 'H' + gx + 'V' + b.y + 'H' + (b.x - R);
+      }
+      gEdges.appendChild(svg('path', { class: 'edge' + (kindOf(s) === 'fog' ? ' to-fog' : ''), d: d }));
+      var sm = svg('path', { class: 'smoke', d: d });
+      gSmoke.appendChild(sm);
+      var len = Math.ceil(sm.getTotalLength()) + 1;
+      sm.style.strokeDasharray = len + ' ' + len;
+      sm.style.strokeDashoffset = len;
+      sm.dataset.len = len;
+      smokes.push(sm);
+    });
+
+    nodes = steps.map(function (s, i) {
+      var k = kindOf(s), p = pt[i];
+      var g = svg('g', { class: 'node k-' + k, tabindex: 0, role: 'button', 'aria-label': '第 ' + (i + 1) + ' 步 ' + s.title + (KIND_NAME[k] ? '（' + KIND_NAME[k] + '）' : '') });
+      g.appendChild(svg('circle', { class: 'ring', cx: p.x, cy: p.y, r: R + 5 }));
+      if (k === 'dead') g.appendChild(svg('rect', { class: 'shape', x: p.x - R, y: p.y - R, width: R * 2, height: R * 2, rx: 3 }));
+      else g.appendChild(svg('circle', { class: 'shape', cx: p.x, cy: p.y, r: R }));
+      if (k === 'end') g.appendChild(svg('circle', { class: 'shape', cx: p.x, cy: p.y, r: R - 4 }));
+      g.appendChild(svg('text', { class: 'num', x: p.x, y: p.y }, String(i + 1)));
+      var lines = chunks(s.title, 7), y = p.y + R + 18;
+      lines.forEach(function (t) { g.appendChild(svg('text', { class: 'title', x: p.x, y: y }, t)); y += 17; });
+      if (KIND_NAME[k]) g.appendChild(svg('text', { class: 'tag', x: p.x, y: y }, KIND_NAME[k]));
+      g.addEventListener('click', function () { pos = i; show(); });
+      g.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); pos = i; show(); } });
+      gNodes.appendChild(g);
+      return g;
+    });
+
+    var stats = $('e-stats');
+    stats.textContent = '';
+    [['步數', steps.length], ['跨模組', crossings + ' 次'],
+     ['死路', steps.filter(function (s) { return s.kind === 'dead'; }).length],
+     ['霧', steps.filter(function (s) { return s.kind === 'fog'; }).length]].forEach(function (x) {
+      var sp = el('span', '', x[0] + ' ');
+      sp.appendChild(el('b', '', String(x[1])));
+      stats.appendChild(sp);
+    });
+  }
+
+  function nextEntry() {
+    var i = traced.indexOf(cur);
+    return traced.length > 1 ? traced[(i + 1) % traced.length] : null;
+  }
+
+  function show() {
+    var steps = cur.steps, s = steps[pos], k = kindOf(s);
+    nodes.forEach(function (g, i) {
+      g.classList.toggle('seen', i <= pos);
+      g.classList.toggle('now', i === pos);
+    });
+    smokes.forEach(function (sm, i) { if (sm) sm.style.strokeDashoffset = i <= pos ? 0 : sm.dataset.len; });
+    $('d-count').textContent = '第 ' + (pos + 1) + ' 步／共 ' + steps.length + ' 步';
+    $('d-module').textContent = '模組：' + DATA.modules[modIndex[s.module]].name;
+    var pi = parents[pos];
+    $('d-from').textContent = pi >= 0 && pi !== pos - 1 ? '煙從第 ' + (pi + 1) + ' 步折返到這裡' : '';
+    var st = $('d-status');
+    st.hidden = k === 'step'; st.className = 'status ' + k; st.textContent = KIND_NAME[k] || '';
+    $('d-title').textContent = s.title;
+    $('d-desc').textContent = s.desc;
+    $('d-loc').textContent = s.file + ':' + s.line + '　' + s.symbol;
+    var rs = $('d-reason');
+    rs.hidden = !s.reason; rs.className = 'reason ' + k; rs.textContent = s.reason || '';
+    $('b-prev').disabled = pos === 0;
+    $('b-first').disabled = pos === 0;
+    var last = pos === steps.length - 1, nx = nextEntry();
+    $('b-next').textContent = !last ? '下一步' : (nx ? '下一個入口：' + nx.name : '從頭播放');
+    var board = $('board'), x = PAD + pos * COL + $('lanes').offsetWidth;
+    var smooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    board.scrollTo({ left: Math.max(0, x - board.clientWidth / 2), behavior: smooth ? 'smooth' : 'auto' });
+  }
+
+  function step(d) {
+    if (!cur || !cur.steps.length) return;
+    var last = cur.steps.length - 1;
+    if (d > 0 && pos === last) {
+      var nx = nextEntry();
+      if (nx) select(nx); else { pos = 0; show(); }
+      return;
+    }
+    pos = Math.min(last, Math.max(0, pos + d));
+    show();
+  }
+  $('b-next').addEventListener('click', function () { step(1); });
+  $('b-prev').addEventListener('click', function () { step(-1); });
+  $('b-first').addEventListener('click', function () { pos = 0; show(); });
+  document.addEventListener('keydown', function (ev) {
+    if (ev.target.closest && ev.target.closest('button')) return;
+    if (ev.key === 'ArrowRight') { ev.preventDefault(); step(1); }
+    if (ev.key === 'ArrowLeft') { ev.preventDefault(); step(-1); }
+  });
+
+  select(traced[0] || DATA.entries[0]);
+})();
+</script>
+</body>
+</html>

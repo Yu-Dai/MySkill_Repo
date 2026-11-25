@@ -1,0 +1,60 @@
+{
+  "project": { "name": "範例匯入工具", "commit": "", "date": "2026-11-25" },
+  "modules": [
+    { "id": "core", "name": "核心", "desc": "啟動與關閉" },
+    { "id": "ui", "name": "介面", "desc": "按鈕事件" },
+    { "id": "parser", "name": "解析", "desc": "讀檔與驗證" },
+    { "id": "store", "name": "儲存", "desc": "設定與暫存" },
+    { "id": "sync", "name": "同步", "desc": "定時工作" }
+  ],
+  "entries": [
+    {
+      "id": "boot",
+      "name": "程式啟動",
+      "phase": "boot",
+      "trigger": "執行 node main.js",
+      "file": "main.js", "line": 21, "symbol": "main()",
+      "steps": [
+        { "id": "s1", "module": "core", "title": "進入主程式", "desc": "依序做三件事：讀設定、註冊事件、啟動計時器。", "file": "main.js", "line": 7, "symbol": "main" },
+        { "id": "s2", "module": "store", "title": "讀取設定檔", "desc": "讀 config.json 並解析成物件。", "file": "store/config.js", "line": 4, "symbol": "loadConfig" },
+        { "id": "s3", "module": "ui", "title": "註冊按鈕事件", "desc": "把匯入按鈕的點擊接到處理函式。", "file": "ui/import.js", "line": 6, "symbol": "registerHandlers" },
+        { "id": "s4", "module": "sync", "title": "啟動同步計時器", "desc": "用 setInterval 排定定時同步。", "file": "sync/timer.js", "line": 4, "symbol": "startTimer", "kind": "end", "reason": "main 返回，程式停在事件迴圈等事件。" }
+      ]
+    },
+    {
+      "id": "import",
+      "name": "匯入檔案",
+      "phase": "run",
+      "trigger": "使用者按下匯入按鈕",
+      "file": "ui/import.js", "line": 7, "symbol": "addEventListener",
+      "steps": [
+        { "id": "s1", "module": "ui", "title": "收到按鈕點擊", "desc": "從按鈕屬性取出檔案路徑。", "file": "ui/import.js", "line": 10, "symbol": "onImportClick" },
+        { "id": "s2", "module": "parser", "title": "讀取檔案內容", "desc": "整個檔案讀進來，切成列與欄。", "file": "parser/read.js", "line": 4, "symbol": "readContent" },
+        { "id": "s3", "module": "parser", "title": "驗證資料格式", "desc": "第一欄是 v1 時先走舊版轉換，再濾掉欄位不足的列。", "file": "parser/validate.js", "line": 4, "symbol": "validate" },
+        { "id": "s4", "module": "parser", "title": "轉換舊版格式", "desc": "去掉每列的第一欄後回傳。", "file": "parser/legacy.js", "line": 3, "symbol": "convertLegacy", "kind": "dead", "reason": "validate.js 第 6 行沒有接收回傳值，轉換結果被丟棄。" },
+        { "id": "s5", "module": "store", "title": "寫入暫存區", "desc": "把通過驗證的列放進 pending 陣列。", "file": "store/save.js", "line": 6, "symbol": "save", "from": "s3" },
+        { "id": "s6", "module": "store", "title": "通知外掛", "desc": "用事件名稱組出屬性名，再呼叫對應的處理函式。", "file": "store/save.js", "line": 12, "symbol": "plugins[", "kind": "fog", "reason": "呼叫目標由字串在執行期決定，plugins.js 目前是空物件，讀碼無法確定會呼叫誰。" }
+      ]
+    },
+    {
+      "id": "sync",
+      "name": "定時同步",
+      "phase": "run",
+      "trigger": "計時器每隔設定的分鐘數觸發",
+      "file": "sync/timer.js", "line": 5, "symbol": "setInterval",
+      "steps": []
+    },
+    {
+      "id": "sigint",
+      "name": "收到中斷訊號",
+      "phase": "exit",
+      "trigger": "使用者按 Ctrl+C",
+      "file": "main.js", "line": 20, "symbol": "SIGINT",
+      "steps": [
+        { "id": "s1", "module": "core", "title": "進入關閉流程", "desc": "依序停計時器、清暫存、結束行程。", "file": "main.js", "line": 13, "symbol": "shutdown" },
+        { "id": "s2", "module": "sync", "title": "停止同步計時器", "desc": "清除 setInterval。", "file": "sync/timer.js", "line": 12, "symbol": "stopTimer" },
+        { "id": "s3", "module": "store", "title": "清空暫存區", "desc": "pending 陣列長度設為 0，沒有寫入磁碟。", "file": "store/save.js", "line": 16, "symbol": "flush", "kind": "end", "reason": "回到 shutdown 後呼叫 process.exit(0)，行程結束。" }
+      ]
+    }
+  ]
+}

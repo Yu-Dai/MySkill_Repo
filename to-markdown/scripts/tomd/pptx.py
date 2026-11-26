@@ -410,7 +410,20 @@ def convert(path, out_dir, options):
 
     if charts:
         warnings.append("共有 %d 個圖表的資料沒有輸出" % charts)
-    return mdutil.Result(
+
+    # 圖片只能依序列出，彼此與文字之間的相對位置不會保留
+    layout_slides = [number for number, slide in enumerate(slides, 1)
+                     if len(slide.pictures) >= 2
+                     or (slide.pictures and slide.is_diagram())]
+    result = mdutil.Result(
         "\n\n".join(out) + "\n", warnings,
         {"slides": len(slides), "diagram_slides": len(wanted), "screenshots": len(rendered)},
         source_texts)
+    if layout_slides:
+        pages = "、".join(map(str, layout_slides[:20])) + ("…" if len(layout_slides) > 20 else "")
+        result.notices.append(
+            "這份簡報有 %d 張投影片貼了多張圖片或圖文混排（第 %s 張），轉出後圖片只會依序列出，"
+            "不會保留彼此的相對位置。請提醒使用者打開輸出檔確認這幾張投影片；"
+            "如果位置關係很重要，請使用者在 PowerPoint 用「另存新檔」存成 PDF，再把那個 PDF 拿來轉。"
+            % (len(layout_slides), pages))
+    return result

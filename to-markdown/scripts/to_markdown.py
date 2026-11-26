@@ -198,6 +198,8 @@ def main():
             print("  [檢查] 文字覆蓋通過")
         for warning in result.warnings:
             print("  [警告] " + warning)
+        for notice in result.notices:
+            print("  [提醒] " + notice)
         done += 1
 
     print("\n完成 %d 個，失敗 %d 個，略過 %d 個，需要使用者先另存新檔 %d 個。輸出資料夾：%s"

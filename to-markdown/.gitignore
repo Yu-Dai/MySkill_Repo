@@ -6,3 +6,4 @@ md_out/
 runtime/
 __pycache__/
 *.pyc
+*.zip

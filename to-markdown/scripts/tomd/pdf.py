@@ -305,8 +305,7 @@ def _reduce(lines):
 
 def convert(path, out_dir, options):
     pdfplumber, pdfium = _load_libs()
-    name = os.path.basename(path)
-    stem = os.path.splitext(name)[0]
+    name, stem = mdutil.names(path, options)
     assets = mdutil.AssetWriter(out_dir, stem)
     warnings = []
     page_images = options.get("pdf_page_images", True)

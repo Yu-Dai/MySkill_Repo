@@ -281,8 +281,7 @@ def _render_sheet(sheet, out, source_texts, stats):
 # ---------- 進入點 ----------
 
 def convert(path, out_dir, options):
-    name = os.path.basename(path)
-    stem = os.path.splitext(name)[0]
+    name, stem = mdutil.names(path, options)
     assets = mdutil.AssetWriter(out_dir, stem)
     warnings = []
 

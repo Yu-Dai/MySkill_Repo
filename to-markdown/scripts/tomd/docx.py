@@ -271,8 +271,7 @@ def _blocks(doc, container, out, stats):
 
 
 def convert(path, out_dir, options):
-    name = os.path.basename(path)
-    stem = os.path.splitext(name)[0]
+    name, stem = mdutil.names(path, options)
     assets = mdutil.AssetWriter(out_dir, stem)
 
     with zipfile.ZipFile(path) as archive:

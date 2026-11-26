@@ -108,7 +108,7 @@ class Client:
 
     def ask(self, prompt, data, mime):
         data, mime = _shrink(data, mime, self.max_side)
-        body = json.dumps({
+        return self._post({
             "model": self.model,
             "temperature": 0,
             "messages": [{"role": "user", "content": [
@@ -116,10 +116,18 @@ class Client:
                 {"type": "image_url", "image_url": {
                     "url": "data:%s;base64,%s" % (mime, base64.b64encode(data).decode("ascii"))}},
             ]}],
-        }).encode("utf-8")
+        }, self.timeout)
+
+    def ping(self):
+        """送一個最小的純文字請求，確認網址與金鑰可用。失敗時丟出 VisionError。"""
+        self._post({"model": self.model, "max_tokens": 1,
+                    "messages": [{"role": "user", "content": "ping"}]}, min(self.timeout, 20))
+
+    def _post(self, payload, timeout):
+        body = json.dumps(payload).encode("utf-8")
         request = urllib.request.Request(self.url, data=body, headers=self.headers, method="POST")
         try:
-            with urllib.request.urlopen(request, timeout=self.timeout) as response:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
                 payload = json.loads(response.read().decode("utf-8"))
         except urllib.error.HTTPError as error:
             detail = error.read().decode("utf-8", errors="replace")[:200]

@@ -14,14 +14,15 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from tomd import csv_conv, docx, mdutil, pptx, xlsx  # noqa: E402
+from tomd import csv_conv, docx, mdutil, pdf, pptx, vision, xlsx  # noqa: E402
 
 CONVERTERS = {
     ".xlsx": xlsx.convert, ".xlsm": xlsx.convert, ".csv": csv_conv.convert,
     ".docx": docx.convert, ".docm": docx.convert,
     ".pptx": pptx.convert, ".pptm": pptx.convert,
+    ".pdf": pdf.convert,
 }
-PLANNED = {".pdf"}
+PLANNED = set()
 SKILL_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
@@ -52,7 +53,7 @@ def main():
         if hasattr(stream, "reconfigure"):
             stream.reconfigure(errors="replace")
 
-    parser = argparse.ArgumentParser(description="把 xlsx、csv、docx、pptx 轉成給 LLM 閱讀的 Markdown")
+    parser = argparse.ArgumentParser(description="把 xlsx、csv、docx、pptx、pdf 轉成給 LLM 閱讀的 Markdown")
     parser.add_argument("inputs", nargs="+", help="檔案或資料夾，可以給多個")
     parser.add_argument("-o", "--out", default="md_out", help="輸出資料夾（預設 md_out）")
     parser.add_argument("--mode", choices=("fast", "precise"), default="fast")
@@ -61,11 +62,12 @@ def main():
     parser.add_argument("--config", help="設定檔路徑（預設為技能資料夾內的 config.json）")
     args = parser.parse_args()
 
-    if args.mode == "precise":
-        print("精準模式尚未實作，請先用 --mode fast")
-        return 2
-
     config = load_config(args.config)
+    if args.mode == "precise":
+        problem = vision.validate(config)
+        if problem:
+            print(problem)
+            return 2
     options = dict(config.get("output", {}), mode=args.mode)
     if args.no_slide_images:
         options["slide_images"] = False
@@ -86,6 +88,14 @@ def main():
             print("[失敗] %s：%s" % (name, error))
             failed += 1
             continue
+
+        if args.mode == "precise":
+            try:
+                result.markdown, ai_stats = vision.annotate(
+                    result.markdown, args.out, config, result.warnings)
+                result.stats.update(ai_stats)
+            except Exception as error:  # 看圖失敗時仍保留腳本抽取的結果
+                result.warnings.append("精準模式處理失敗，輸出只含腳本抽取的內容：%s" % error)
 
         target = os.path.join(args.out, os.path.splitext(name)[0] + ".md")
         with open(target, "w", encoding="utf-8", newline="\n") as handle:

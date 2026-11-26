@@ -25,7 +25,7 @@ def main():
 
     with tempfile.TemporaryDirectory() as out:
         subprocess.run([sys.executable, SCRIPT, os.path.join(HERE, "samples"),
-                        "-o", out, "--no-slide-images"], check=False,
+                        "-o", out, "--mode", "fast", "--no-slide-images"], check=False,
                        stdout=subprocess.DEVNULL)
         failed = 0
         for name in sorted(os.listdir(EXPECTED)):

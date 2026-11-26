@@ -31,7 +31,7 @@ def _delimiter(text):
 
 
 def convert(path, out_dir, options):
-    name = os.path.basename(path)
+    name, _ = mdutil.names(path, options)
     with open(path, "rb") as handle:
         text, encoding = _decode(handle.read())
     warnings = []

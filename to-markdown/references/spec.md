@@ -13,6 +13,7 @@
 | docx | 已實作 |
 | pptx | 已實作（投影片截圖只能在 Windows 執行，尚未實機驗證；圖表資料尚未做） |
 | pdf | 已實作快速模式。用 5 份公開的 datasheet 與使用手冊測過 |
+| xls、xlsb、ppt、pps、doc、rtf | 已實作：先用 Office 另存成新格式再轉。Windows 上呼叫 Office 的部分尚未實機驗證 |
 | 精準模式（看圖） | 已實作，只用本機模擬的 API 測過，尚未接真正的模型 |
 
 ## 共通規則
@@ -30,6 +31,7 @@
 
 - 圖片一律存成旁檔，Markdown 內只放相對連結。不內嵌 Base64：它會吃掉大量 token，也會破壞知識庫的切塊。
 - 相同內容的圖片只存一份（以內容雜湊判斷）。
+- 同一批裡有同名但格式不同的檔案時，輸出檔名加上格式：`report_docx.md`、`report_pdf.md`，資料夾也是 `report_docx_assets/`。
 
 ### 檔頭
 
@@ -309,6 +311,20 @@ pages_with_screenshot: "[3, 4, 9]"
 8. **標記：** AI 產生的內容一律在引言區塊內並以 `[AI 描述，請對照原圖]` 或 `[AI 轉寫，請對照原圖]` 開頭。
 
 API 格式：OpenAI 相容的 chat completions，圖片以 base64 放在 `image_url`。金鑰放在哪個 header、要不要加前綴，由設定檔的 `api_key_header`、`api_key_prefix` 決定。
+
+## 舊格式（xls、xlsb、ppt、pps、doc、rtf）
+
+不自己解析舊的二進位格式。做法是先轉成新格式的暫存檔，再走對應的新格式流程，輸出規則完全相同。
+
+- Windows：透過 PowerShell 呼叫本機的 Excel、PowerPoint、Word 另存新檔。開檔時唯讀，並停用巨集。
+- 其他系統：有 LibreOffice 時用它轉。
+- 檔頭的 `source` 是原本的檔名（例如 `map.xls`），`type` 是實際處理的格式（`xlsx`）。
+- 暫存檔在轉完後刪除，不會留在輸出資料夾。
+
+已知限制：
+
+- 沒有 Office 也沒有 LibreOffice 時無法處理，腳本會說明原因。
+- 公司若以政策封鎖舊格式的開啟，Office 會拒絕，該檔案會列為失敗。
 
 ## 驗收檢查
 

@@ -17,6 +17,17 @@ class Result:
         self.source_texts = source_texts or []
 
 
+def names(path, options):
+    """回傳 (顯示用的來源檔名, 輸出檔名的主檔名)。
+
+    舊格式會先轉成新格式的暫存檔再處理，這時來源檔名要顯示原本的名稱；
+    同名不同格式的檔案（report.docx 與 report.pdf）輸出檔名要加上格式避免互相覆蓋。
+    """
+    name = options.get("source_name") or os.path.basename(path)
+    stem = options.get("out_stem") or os.path.splitext(name)[0]
+    return name, stem
+
+
 def escape_cell(text):
     """讓文字可以安全放進 Markdown 表格的儲存格。"""
     text = text.replace("\r\n", "\n").replace("\r", "\n").strip()

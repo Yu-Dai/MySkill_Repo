@@ -6,6 +6,7 @@
 |------|------|
 | xlsx、csv、docx、pptx 轉檔 | 只要 Python 3.8 以上，不需任何套件 |
 | pptx 投影片截圖 | Windows、已安裝的 PowerPoint（透過 PowerShell 呼叫） |
+| xls、ppt、doc 等舊格式 | Windows、已安裝的 Excel、PowerPoint、Word（透過 PowerShell 呼叫） |
 | pdf 轉檔 | pdfplumber、pypdfium2 以及它們帶進來的套件 |
 | 精準模式 | 可連到看圖 API；有安裝 Pillow 時會先把過大的圖縮小 |
 

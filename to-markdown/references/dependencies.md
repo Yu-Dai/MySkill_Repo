@@ -6,7 +6,7 @@
 |------|------|
 | xlsx、csv、docx、pptx 轉檔 | 只要 Python 3.8 以上，不需任何套件 |
 | pptx 投影片截圖 | Windows、已安裝的 PowerPoint（透過 PowerShell 呼叫） |
-| xls、ppt、doc 等舊格式 | Windows、已安裝的 Excel、PowerPoint、Word（透過 PowerShell 呼叫） |
+| xls、ppt、doc 等舊格式 | 不支援，請使用者先另存成新格式 |
 | pdf 轉檔 | pdfplumber、pypdfium2 以及它們帶進來的套件 |
 | 精準模式 | 可連到看圖 API；有安裝 Pillow 時會先把過大的圖縮小 |
 
@@ -14,7 +14,7 @@
 
 內網不能 `pip install`，所以有兩種做法：
 
-1. **只用四種不需套件的格式：** 電腦上有 Python 即可，直接執行 `to_markdown.cmd`。
+1. **只用四種不需套件的格式：** 電腦上有 Python 即可，執行 `to_markdown.cmd`。
 2. **需要 PDF：** 用 `tools/build_runtime.ps1` 在可連外網的 Windows 電腦建立執行環境，
    把產生的 zip 帶進內網，解壓到技能資料夾，讓資料夾內有 `runtime\python.exe`。
    `to_markdown.cmd` 會自動改用它。這個執行環境不需要安裝，也不影響電腦上原有的 Python。

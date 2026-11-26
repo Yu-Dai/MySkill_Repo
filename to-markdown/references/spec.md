@@ -13,7 +13,7 @@
 | docx | 已實作 |
 | pptx | 已實作（投影片截圖只能在 Windows 執行，尚未實機驗證；圖表資料尚未做） |
 | pdf | 已實作快速模式。用 5 份公開的 datasheet 與使用手冊測過 |
-| xls、xlsb、ppt、pps、doc、rtf | 已實作：先用 Office 另存成新格式再轉。Windows 上呼叫 Office 的部分尚未實機驗證 |
+| xls、xlsb、ppt、pps、doc、rtf | 不支援。腳本會提示使用者自己另存成新格式 |
 | 精準模式（看圖） | 已實作，只用本機模擬的 API 測過，尚未接真正的模型 |
 
 ## 共通規則
@@ -66,7 +66,7 @@ mode: fast
 
 ### 模式
 
-| | 快速 fast | 精準 precise |
+| | 快速 fast（也可寫 flash） | 精準 precise |
 |---|---|---|
 | 文字、表格 | 腳本抽取 | 同左 |
 | 圖片 | 存檔＋連結 | 存檔＋連結＋AI 描述 |
@@ -314,17 +314,13 @@ API 格式：OpenAI 相容的 chat completions，圖片以 base64 放在 `image_
 
 ## 舊格式（xls、xlsb、ppt、pps、doc、rtf）
 
-不自己解析舊的二進位格式。做法是先轉成新格式的暫存檔，再走對應的新格式流程，輸出規則完全相同。
+不支援，也不自動轉換。遇到時腳本印出 `[需要另存]`，請使用者自己用 Excel、PowerPoint、Word 開啟，另存成 xlsx、pptx、docx 後再轉。
 
-- Windows：透過 PowerShell 呼叫本機的 Excel、PowerPoint、Word 另存新檔。開檔時唯讀，並停用巨集。
-- 其他系統：有 LibreOffice 時用它轉。
-- 檔頭的 `source` 是原本的檔名（例如 `map.xls`），`type` 是實際處理的格式（`xlsx`）。
-- 暫存檔在轉完後刪除，不會留在輸出資料夾。
+曾經試過由腳本呼叫 Office 自動另存，在實機上失敗，所以改成由使用者手動處理。
 
-已知限制：
+## 轉換方式必須先問使用者
 
-- 沒有 Office 也沒有 LibreOffice 時無法處理，腳本會說明原因。
-- 公司若以政策封鎖舊格式的開啟，Office 會拒絕，該檔案會列為失敗。
+`--mode` 是必填。沒有指定時腳本不轉檔，而是印出要問使用者的問題，以及精準方式目前能不能用，結束碼為 3。這是為了確保 AI 一定會先問，而不是自己決定。
 
 ## 驗收檢查
 

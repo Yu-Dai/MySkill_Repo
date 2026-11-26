@@ -12,6 +12,8 @@ class Result:
     def __init__(self, markdown, warnings=None, stats=None, source_texts=None):
         self.markdown = markdown
         self.warnings = warnings or []
+        # 需要使用者親自確認的事項，會以 [提醒] 印出
+        self.notices = []
         self.stats = stats or {}
         # 來源中每一段應該出現在輸出裡的文字，用來做文字覆蓋檢查
         self.source_texts = source_texts or []

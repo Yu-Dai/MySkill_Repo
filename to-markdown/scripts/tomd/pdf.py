@@ -213,10 +213,12 @@ def _analyse(page):
                                  min(image["x1"], page.width), min(image["bottom"], page.height)))
 
     # 腳本處理不了的情況
-    if text_chars < 20:
+    big_image = any((i["x1"] - i["x0"]) * (i["bottom"] - i["top"]) > page_area * 0.5
+                    for i in page.images)
+    if text_chars == 0 or (text_chars < 20 and big_image):
         if page.images or page.curves or len(page.rects) > 3:
             record["reasons"].append("沒有文字層，可能是掃描頁")
-    else:
+    if text_chars > 0:
         if "(cid:" in " ".join(w["text"] for w in words[:400]):
             record["reasons"].append("文字層無法解碼")
         # 頁首頁尾區的商標與裝飾線不算
@@ -227,6 +229,8 @@ def _analyse(page):
             record["reasons"].append("含向量圖形，可能是圖表、方塊圖或時序圖")
         if _columnar_lines(words) >= 6:
             record["reasons"].append("可能含無框線表格")
+    if len(record["images"]) >= 2:
+        record["reasons"].append("含多張圖片，圖片之間的位置關係要看截圖")
 
     for kind, line in record["blocks"]:
         if kind == "line" and (line["bottom"] <= zone_top or line["top"] >= zone_bottom):

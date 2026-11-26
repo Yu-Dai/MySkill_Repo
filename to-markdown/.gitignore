@@ -1,0 +1,8 @@
+# 內含公司內部網址與金鑰，不可進版控
+config.json
+
+# 轉檔輸出與執行環境
+md_out/
+runtime/
+__pycache__/
+*.pyc

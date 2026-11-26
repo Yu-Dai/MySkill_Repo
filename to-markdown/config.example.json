@@ -1,0 +1,17 @@
+{
+  "_說明": "複製成 config.json 後填入實際值。config.json 不會進版控。只有精準模式（--mode precise）會用到 vision 區塊。",
+  "vision": {
+    "base_url": "https://你的閘道位址/路徑",
+    "model": "模型名稱",
+    "api_key": "你的_API_KEY",
+    "api_key_header": "api-key",
+    "api_key_prefix": "",
+    "timeout_seconds": 120,
+    "max_image_side_px": 1600
+  },
+  "output": {
+    "include_hidden_sheets": false,
+    "slide_images": true,
+    "slide_image_width_px": 1600
+  }
+}

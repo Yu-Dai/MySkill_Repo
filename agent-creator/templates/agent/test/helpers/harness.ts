@@ -7,7 +7,7 @@ import type { AgentConfig } from '../../src/core/config.ts';
 import type { AgentEvent, StreamEvent } from '../../src/core/events.ts';
 import type { SessionRunner } from '../../src/core/runner.ts';
 import { startFakeOpenAI } from './fake-openai.ts';
-import type { FakeOpenAI, ScriptedReply } from './fake-openai.ts';
+import type { FakeOpenAI, Responder, ScriptedReply } from './fake-openai.ts';
 
 export const TEST_API_KEY = 'test-key-123';
 
@@ -18,7 +18,7 @@ export type Harness = {
   cleanup: () => Promise<void>;
 };
 
-export async function createHarness(script: ScriptedReply[], overrides: Partial<AgentConfig> = {}): Promise<Harness> {
+export async function createHarness(script: ScriptedReply[] | Responder, overrides: Partial<AgentConfig> = {}): Promise<Harness> {
   const dir = mkdtempSync(join(tmpdir(), 'agent-test-'));
   const fake = await startFakeOpenAI(script);
   const config = resolveConfig({
@@ -27,7 +27,14 @@ export async function createHarness(script: ScriptedReply[], overrides: Partial<
     limits: { modelRetries: 0 },
     ...overrides,
   }, dir);
-  const agent = await Agent.create(config);
+  let agent: Agent;
+  try {
+    agent = await Agent.create(config);
+  } catch (err) {
+    await fake.close();
+    rmSync(dir, { recursive: true, force: true });
+    throw err;
+  }
   return {
     agent, fake, dir,
     async cleanup() {

@@ -65,6 +65,29 @@ session 資料夾裡的 `run.lock` 記著持有者的行程編號。該行程已
 **事件流連上後立刻斷開，或收到 401**
 `EventSource` 要把 token 放在網址參數。確認網址上的 token 與啟動時印出的一致；沒有設定 `AGENT_SERVER_TOKEN` 時，每次重啟 server token 都會變。
 
+## Subagent
+
+**主 agent 從不交辦**
+確認 `subagents.enabled` 沒有被關掉。模型不會主動交辦時，在 `systemPrompt` 寫明哪一類工作要交辦。`npm run smoke` 的第 5 項檢查模型能不能完成一次交辦。
+
+**主 agent 一次只交辦一個，沒有同時進行**
+只有模型在同一則回覆裡發出多個 `delegate` 呼叫時才會同時進行，這取決於模型與端點是否支援一次回覆多個工具呼叫。`npm run smoke` 的第 6 項檢查這件事。不支援時功能仍然可用，只是變成一個接一個。
+
+**同時進行時模型端回 429 或連線錯誤**
+端點有同時請求數的限制。調低 `subagents.maxParallel`。
+
+**`delegate` 的結果是「達到上限」**
+這一輪的交辦次數達到 `subagents.maxPerTurn`。先看紀錄確認主 agent 是不是在重複交辦同一件事。若是，問題在交辦內容或報告不夠清楚，讓主 agent 無法據以前進；調高上限解決不了。
+
+**報告太空泛，主 agent 無法使用**
+打開 `sessions/<id>/subagents/<子 id>/events.jsonl` 看 subagent 實際收到什麼任務說明（第一筆 `user.message`）。說明太簡略是最常見的原因：在 `systemPrompt` 要求主 agent 交辦時寫明完成條件與相關檔案路徑。
+
+**兩個 subagent 改到同一個檔案**
+workspace 是共用的，骨幹不做檔案鎖。在 `systemPrompt` 要求主 agent 分派時讓每個 subagent 負責不同的檔案，或用只有讀取工具的類型。
+
+**使用 subagent 後 token 用量明顯增加**
+每個 subagent 都要重新送一次系統提示與工具定義。只在子任務需要大量閱讀或多步嘗試時才值得交辦。用自訂類型限制 `tools` 可以縮小每次的固定開銷。
+
 ## 上下文
 
 **模型端回報內容太長**

@@ -18,6 +18,7 @@
 | `GET /sessions` | 無 | 200，`{ "sessions": [...] }` |
 | `GET /sessions/:id` | 無 | 200，session 資訊 |
 | `GET /sessions/:id/events` | 參數 `after=序號`（可省略） | 200，事件流（SSE） |
+| `GET /sessions/:id/subagents/:subagentId/events` | 參數 `after=序號`（可省略） | 200，`{ "events": [...] }`。一次回傳，不是事件流 |
 | `POST /sessions/:id/messages` | `{ "text": "訊息" }` | 202，session 資訊 |
 | `POST /sessions/:id/approvals/:callId` | `{ "decision": "allow" 或 "deny" }` | 200，`{ "ok": true }` |
 | `POST /sessions/:id/interrupt` | 無 | 200，`{ "interrupted": true 或 false }` |
@@ -26,6 +27,10 @@
 session 資訊的欄位：`id`、`title`、`modelId`、`createdAt`、`updatedAt`、`status`、`lastTurnEnd`、`canResume`。
 
 送出訊息與續跑都是立刻回應，實際結果要從事件流取得。
+
+核准端點的 `:callId` 用 `tool.approval_requested` 事件裡的 `callId` 原樣帶入。subagent 的核准編號含有冒號，放進網址前要先做 URL 編碼（瀏覽器用 `encodeURIComponent`）。
+
+subagent 沒有自己的事件流。它的即時進度會以 `subagent.event` 出現在主 session 的事件流裡；要補讀先前的內容，用上表的 subagent 事件端點。
 
 ## 錯誤
 
@@ -36,6 +41,7 @@ session 資訊的欄位：`id`、`title`、`modelId`、`createdAt`、`updatedAt`
 | 400 | `invalid_request` | 請求內容缺欄位或格式不對 |
 | 401 | `unauthorized` | token 不正確或沒帶 |
 | 404 | `session_not_found` | 沒有這個 session |
+| 404 | `subagent_not_found` | 這個 session 底下沒有這個 subagent |
 | 404 | `approval_not_pending` | 這個工具呼叫目前沒有在等核准（可能已被回覆或已中斷） |
 | 409 | `session_running` | session 正在執行，不能再送訊息或續跑 |
 | 409 | `nothing_to_resume` | 沒有未完成的工作 |
@@ -71,7 +77,7 @@ source.addEventListener('assistant.message', (message) => {
 });
 source.addEventListener('tool.approval_requested', (message) => {
   const event = JSON.parse(message.data);
-  askUser(event.name, event.input, (decision) => fetch(`/sessions/${id}/approvals/${event.callId}`, {
+  askUser(event.name, event.input, (decision) => fetch(`/sessions/${id}/approvals/${encodeURIComponent(event.callId)}`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ decision }),

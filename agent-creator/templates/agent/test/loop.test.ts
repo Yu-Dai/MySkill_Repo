@@ -49,7 +49,7 @@ test('自訂 header 會送到模型端，第二次請求帶著工具結果', asy
     assert.equal(h.fake.requests.length, 2);
     assert.equal(h.fake.requests[0].headers['api-key'], TEST_API_KEY);
     const toolNames = h.fake.requests[0].body.tools.map((t: any) => t.function.name);
-    assert.deepEqual(toolNames.sort(), ['list_dir', 'read_file', 'run_command', 'write_file']);
+    assert.deepEqual(toolNames.sort(), ['delegate', 'list_dir', 'read_file', 'run_command', 'write_file']);
     const second = h.fake.requests[1].body.messages;
     const toolMessage = second.find((m: any) => m.role === 'tool');
     assert.equal(toolMessage.tool_call_id, 'call_a');
@@ -174,7 +174,7 @@ test('模型端回 500 時記錄錯誤事件並結束這一輪，之後可以續
   }
 });
 
-test('等待核准時中斷：這一輪以 interrupted 結束，續跑後重新詢問', async () => {
+test('等待核准時中斷：這一輪以 interrupted 結束，續跑後發出新的詢問', async () => {
   const h = await createHarness([
     { toolCalls: [{ id: 'call_w', name: 'write_file', arguments: { path: 'a.txt', content: 'x' } }] },
     { text: '完成' },
@@ -194,7 +194,9 @@ test('等待核准時中斷：這一輪以 interrupted 結束，續跑後重新�
     await runner.whenSettled();
     assert.equal(existsSync(join(runner.store.workspaceDir, 'a.txt')), true);
     const requested = runner.store.events.filter((e) => e.type === 'tool.approval_requested');
-    assert.equal(requested.length, 1);
+    assert.equal(requested.length, 2);
+    const finishedAt = runner.store.events.findIndex((e) => e.type === 'turn.finished');
+    assert.ok(runner.store.events.indexOf(requested[1]) > finishedAt);
   } finally {
     await h.cleanup();
   }

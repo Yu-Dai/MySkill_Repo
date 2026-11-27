@@ -6,9 +6,9 @@
 前端        src/cli.ts（終端機）    src/server.ts（HTTP）    你自己的前端
               │  指令：送訊息、核准、中斷、續跑        ▲ 事件：每筆帶序號
               ▼                                        │
-core        SessionRunner ── Agent 迴圈 ── Tool Registry ── 內建工具 / MCP / Skill
+core        SessionRunner ── Agent 迴圈 ── Tool Registry ── 內建工具 / MCP / Skill / Subagent
               │
-磁碟        sessions/<id>/  events.jsonl、meta.json、tool-results/、workspace/
+磁碟        sessions/<id>/  events.jsonl、meta.json、tool-results/、workspace/、subagents/
 ```
 
 - **core**（`src/core/`）不讀鍵盤、不印畫面、不開連接埠。它只認得指令與事件。
@@ -24,6 +24,31 @@ core        SessionRunner ── Agent 迴圈 ── Tool Registry ── 內建
 3. 否則檢查上限（步數、時間、token 預算），沒超過就呼叫模型一次，把回覆記成一筆事件，回到開頭。
 
 因為判斷完全來自事件紀錄，行程在任何一步結束，重新啟動後呼叫續跑就會從同一個位置接下去。
+
+## Subagent
+
+主 agent 呼叫 `delegate` 工具時，骨幹建立一個子 session，用**同一個迴圈**跑到結束，再把它最後一則回覆當成工具結果交回主 agent。
+
+```
+sessions/<主 id>/
+  events.jsonl              主 agent 的紀錄，只多出交辦的起訖
+  workspace/                主與子共用
+  subagents/<子 id>/
+    events.jsonl            subagent 完整的過程
+    tool-results/
+```
+
+| 面向 | 做法 |
+| --- | --- |
+| 上下文 | 各自獨立。subagent 只看到交辦內容，主 agent 只看到報告 |
+| 同時進行 | 同一則回覆裡的多個 `delegate` 會同時跑，上限 `subagents.maxParallel`，超過的排隊。其他工具一律照順序執行，因為有副作用的操作順序有意義 |
+| 數量上限 | 一輪最多 `subagents.maxPerTurn` 次；subagent 不能再交辦；用掉的 token 計入主 session 的預算 |
+| 核准 | subagent 沒有前端，它的核准請求記在主 session 的紀錄，由主 session 的前端回覆 |
+| 中斷 | 主 session 中斷時 subagent 一起停 |
+| 續跑 | 子 session 的編號由呼叫位置決定，所以續跑時會找到同一個子 session 接著做。已經做完的直接取用報告 |
+| 失敗 | 某個 subagent 沒完成時，它的結果記為失敗並附上原因與最後進度，其餘照常 |
+
+成效取決於兩段文字：主 agent 寫的交辦內容夠不夠完整，以及 subagent 的報告夠不夠具體。骨幹用工具的參數欄位（目標、已知資訊、期望的回報）與固定的回報格式來約束這兩段，但最終仍看模型的能力。
 
 ## 上下文管理
 
@@ -54,6 +79,7 @@ token 數是用字元數估算的，只用來決定要不要壓縮，不是精�
 | --- | --- |
 | 工具還沒開始（包含正在等核准） | 照常處理，需要核准的會重新等待核准 |
 | 工具已經開始但沒有結果 | 不重跑。記一筆「結果未知」回給模型，由模型先檢查實際狀態再決定 |
+| 交辦給 subagent，但 subagent 還沒做完 | 接續同一個子 session |
 
 不自動重跑是刻意的：有副作用的操作重複執行比少執行一次更危險。
 
@@ -85,6 +111,7 @@ token 數是用字元數估算的，只用來決定要不要壓縮，不是精�
 | `src/core/tools/` | 工具登錄、內建工具、核准規則 |
 | `src/core/mcp.ts` | 連線 MCP server 並註冊工具 |
 | `src/core/skills.ts` | 掃描 skill、產生索引、`load_skill` 工具 |
+| `src/core/subagents.ts` | `delegate` 工具、子 session 的建立與接續、回報格式 |
 | `src/core/model.ts` | 由設定建立模型 |
 | `src/core/config.ts` | 設定的型別、預設值、載入 |
 | `src/cli.ts` | 終端機前端 |

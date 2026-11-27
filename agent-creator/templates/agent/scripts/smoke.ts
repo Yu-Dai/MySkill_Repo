@@ -1,4 +1,4 @@
-// 用真實模型跑三個最小情境，確認模型端點、金鑰 header、工具呼叫都正常。
+// 用真實模型跑幾個最小情境，確認模型端點、金鑰 header、工具呼叫、交辦給 subagent 都正常。
 // 執行：npm run smoke。把完整輸出貼給協助你的人或 AI，就能判斷問題出在哪一段。
 import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -19,6 +19,7 @@ function summarize(events: readonly AgentEvent[]): string {
     if (e.type === 'assistant.message') return `assistant(text=${e.text.length}字, tools=[${e.toolCalls.map((c) => c.name + (c.invalid ? '!invalid' : '')).join(',')}], finish=${e.finishReason}, usage=${JSON.stringify(e.usage)})`;
     if (e.type === 'tool.result') return `tool.result(${e.name}, ok=${e.ok})`;
     if (e.type === 'turn.finished') return `turn.finished(${e.reason})`;
+    if (e.type === 'subagent.finished') return `subagent.finished(${e.reason}, tokens=${e.tokens})`;
     if (e.type === 'error') return `error(${e.message})`;
     return e.type;
   }).join(' → ');
@@ -73,6 +74,26 @@ async function main(): Promise<void> {
       pass: anyUsage,
       detail: anyUsage ? '有' : '沒有。若請求被端點以 400 拒絕，試著在 agent.config.ts 的 model 加上 includeUsage: false',
     });
+
+    if (config.subagents.enabled) {
+      const delegating = agent.createSession('smoke: 交辦');
+      delegating.sendMessage('請同時交辦兩個 subagent：第一個回答「一加一等於多少」，第二個回答「二加二等於多少」。兩個都要用 delegate 工具，並且在同一則回覆裡一起呼叫。拿到兩份報告後把答案告訴我。');
+      await delegating.whenSettled();
+      const delegateCounts = delegating.store.events
+        .filter((e): e is EventOf<'assistant.message'> => e.type === 'assistant.message')
+        .map((e) => e.toolCalls.filter((c) => c.name === 'delegate').length);
+      const finishedOk = delegating.store.events.filter((e) => e.type === 'subagent.finished' && e.reason === 'done').length;
+      checks.push({
+        name: '5. 交辦給 subagent 並拿回報告',
+        pass: finishedOk >= 1 && delegating.store.readMeta().lastTurnEnd === 'done',
+        detail: `完成的 subagent 數=${finishedOk}；${summarize(delegating.store.events)}`,
+      });
+      checks.push({
+        name: '6. 模型會在同一則回覆裡同時交辦多個（不會也能運作，只是變成一個接一個）',
+        pass: Math.max(0, ...delegateCounts) >= 2,
+        detail: `各則回覆的 delegate 呼叫數=${JSON.stringify(delegateCounts)}`,
+      });
+    }
   } finally {
     await agent.close();
   }

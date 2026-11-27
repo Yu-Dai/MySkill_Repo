@@ -49,7 +49,7 @@ test('工具執行途中當掉：續跑時不重跑工具，改回報結果未�
   }
 });
 
-test('等待核准時當掉：續跑後回到等待核准，不重複發出詢問事件，核准後照常執行', async () => {
+test('等待核准時當掉：續跑後發出新的詢問並回到等待核准，核准後照常執行', async () => {
   const h = await createHarness([{ text: '寫好了' }]);
   try {
     const id = crashedSession(h.agent.config.sessionsDir, { toolStarted: false });
@@ -57,7 +57,7 @@ test('等待核准時當掉：續跑後回到等待核准，不重複發出詢�
     assert.ok(runner);
     runner.resume();
     await waitFor(() => runner.status === 'waiting_approval');
-    assert.equal(runner.store.events.filter((e) => e.type === 'tool.approval_requested').length, 1);
+    assert.equal(runner.store.events.filter((e) => e.type === 'tool.approval_requested').length, 2);
 
     runner.approve('call_w', 'allow');
     await runner.whenSettled();

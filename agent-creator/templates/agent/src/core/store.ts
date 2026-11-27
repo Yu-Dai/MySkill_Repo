@@ -11,6 +11,7 @@ const META_FILE = 'meta.json';
 const LOCK_FILE = 'run.lock';
 const WORKSPACE_DIR = 'workspace';
 const TOOL_RESULTS_DIR = 'tool-results';
+const SUBAGENTS_DIR = 'subagents';
 const NEWLINE_BYTE = 0x0a;
 const SESSION_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
 const SESSION_ID_RANDOM_BYTES = 3;
@@ -48,9 +49,9 @@ function newSessionId(now: Date): string {
   return `${stamp}-${randomBytes(SESSION_ID_RANDOM_BYTES).toString('hex')}`;
 }
 
-// 行程在寫入途中當掉會留下半行。保留它會讓下一筆事件接在壞行後面一起壞掉，
-// 所以開檔時把檔尾不完整的那一行截掉；壞行若不在檔尾則視為真正的損毀。
-function loadEvents(file: string): AgentEvent[] {
+// 行程在寫入途中當掉會留下半行。讀取時略過它，並回報完好內容的結尾位置；
+// 壞行若不在檔尾則視為真正的損毀。
+function loadEvents(file: string): { events: AgentEvent[]; tornTailAt: number | null } {
   const raw = readFileSync(file);
   const events: AgentEvent[] = [];
   let start = 0;
@@ -72,8 +73,7 @@ function loadEvents(file: string): AgentEvent[] {
     start = newlineAt + 1;
     goodEnd = start;
   }
-  if (goodEnd < raw.length) truncateSync(file, goodEnd);
-  return events;
+  return { events, tornTailAt: goodEnd < raw.length ? goodEnd : null };
 }
 
 function isProcessAlive(pid: number): boolean {
@@ -91,14 +91,42 @@ export class SessionStore {
   readonly workspaceDir: string;
   readonly toolResultsDir: string;
   #events: AgentEvent[];
+  #tornTailAt: number | null;
   #holdsLock = false;
 
-  private constructor(dir: string, id: string, events: AgentEvent[]) {
+  private constructor(dir: string, id: string, loaded: { events: AgentEvent[]; tornTailAt: number | null }, workspaceDir?: string) {
     this.dir = dir;
     this.id = id;
-    this.workspaceDir = join(dir, WORKSPACE_DIR);
+    this.workspaceDir = workspaceDir ?? join(dir, WORKSPACE_DIR);
     this.toolResultsDir = join(dir, TOOL_RESULTS_DIR);
-    this.#events = events;
+    this.#events = loaded.events;
+    this.#tornTailAt = loaded.tornTailAt;
+  }
+
+  static #initialize(store: SessionStore, init: { title: string; modelId: string }): void {
+    const now = new Date().toISOString();
+    store.writeMeta({
+      id: store.id, title: init.title, modelId: init.modelId,
+      createdAt: now, updatedAt: now, status: 'idle', lastTurnEnd: null,
+    });
+    store.append({ type: 'session.created', title: init.title, modelId: init.modelId });
+  }
+
+  // 子 session 住在主 session 資料夾底下，有自己的事件紀錄，但和主 session 共用同一個 workspace。
+  static createChild(parent: SessionStore, childId: string, init: { title: string; modelId: string }): SessionStore {
+    const dir = join(parent.dir, SUBAGENTS_DIR, childId);
+    mkdirSync(join(dir, TOOL_RESULTS_DIR), { recursive: true });
+    writeFileSync(join(dir, EVENTS_FILE), '');
+    const store = new SessionStore(dir, childId, { events: [], tornTailAt: null }, parent.workspaceDir);
+    SessionStore.#initialize(store, init);
+    return store;
+  }
+
+  static openChild(parent: SessionStore, childId: string): SessionStore | null {
+    if (!isValidSessionId(childId)) return null;
+    const dir = join(parent.dir, SUBAGENTS_DIR, childId);
+    if (!existsSync(join(dir, EVENTS_FILE))) return null;
+    return new SessionStore(dir, childId, loadEvents(join(dir, EVENTS_FILE)), parent.workspaceDir);
   }
 
   static create(sessionsDir: string, init: { title: string; modelId: string }): SessionStore {
@@ -108,13 +136,8 @@ export class SessionStore {
     mkdirSync(join(dir, WORKSPACE_DIR), { recursive: true });
     mkdirSync(join(dir, TOOL_RESULTS_DIR), { recursive: true });
     writeFileSync(join(dir, EVENTS_FILE), '');
-    const store = new SessionStore(dir, id, []);
-    store.writeMeta({
-      id, title: init.title, modelId: init.modelId,
-      createdAt: now.toISOString(), updatedAt: now.toISOString(),
-      status: 'idle', lastTurnEnd: null,
-    });
-    store.append({ type: 'session.created', title: init.title, modelId: init.modelId });
+    const store = new SessionStore(dir, id, { events: [], tornTailAt: null });
+    SessionStore.#initialize(store, init);
     return store;
   }
 
@@ -152,7 +175,13 @@ export class SessionStore {
   append(body: EventBody): AgentEvent {
     const last = this.#events[this.#events.length - 1];
     const event = { ...body, seq: (last?.seq ?? 0) + 1, ts: new Date().toISOString() } as AgentEvent;
-    appendFileSync(join(this.dir, EVENTS_FILE), `${JSON.stringify(event)}\n`);
+    const file = join(this.dir, EVENTS_FILE);
+    // 只有要寫入的一方才截掉檔尾的半行；純讀取不改檔案，以免截到別的行程正在寫的內容。
+    if (this.#tornTailAt !== null) {
+      truncateSync(file, this.#tornTailAt);
+      this.#tornTailAt = null;
+    }
+    appendFileSync(file, `${JSON.stringify(event)}\n`);
     this.#events.push(event);
     return event;
   }

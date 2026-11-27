@@ -109,6 +109,18 @@ export function createApp(agent: Agent, token: string): Hono {
     });
   });
 
+  app.get('/sessions/:id/subagents/:subagentId/events', (c) => {
+    const runner = withSession(c.req.param('id'));
+    if (!runner) return c.json(notFound(c.req.param('id')), HTTP_NOT_FOUND);
+    const after = Number(c.req.query('after') ?? 0);
+    if (!Number.isInteger(after) || after < 0) {
+      return c.json(errorBody('invalid_request', 'after 必須是非負整數'), HTTP_BAD_REQUEST);
+    }
+    const events = runner.subagentEvents(c.req.param('subagentId'), after);
+    if (!events) return c.json(errorBody('subagent_not_found', `找不到 subagent ${c.req.param('subagentId')}`), HTTP_NOT_FOUND);
+    return c.json({ events });
+  });
+
   app.post('/sessions/:id/messages', async (c) => {
     const runner = withSession(c.req.param('id'));
     if (!runner) return c.json(notFound(c.req.param('id')), HTTP_NOT_FOUND);

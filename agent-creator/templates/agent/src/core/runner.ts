@@ -2,12 +2,16 @@ import { lastConversationEvent, pendingToolCalls } from './context.ts';
 import type { AgentEvent, ApprovalDecision, EphemeralEvent, EventBody, SessionStatus, StreamEvent, ToolCallRecord } from './events.ts';
 import { runTurn } from './loop.ts';
 import type { LoopDeps } from './loop.ts';
-import type { SessionMeta, SessionStore } from './store.ts';
+import { SessionStore } from './store.ts';
+import type { SessionMeta } from './store.ts';
+import { runSubagent } from './subagents.ts';
+import type { SubagentHost } from './subagents.ts';
 
 export type Listener = (event: StreamEvent) => void;
 
 export type RunnerDeps = Pick<LoopDeps, 'config' | 'model' | 'registry'> & {
   systemPromptFor: (store: SessionStore) => string;
+  subagents: SubagentHost | null;
 };
 
 export class SessionRunningError extends Error {
@@ -114,6 +118,11 @@ export class SessionRunner {
     await this.#turn;
   }
 
+  subagentEvents(subagentId: string, afterSeq = 0): AgentEvent[] | null {
+    const child = SessionStore.openChild(this.store, subagentId);
+    return child ? child.eventsAfter(afterSeq) : null;
+  }
+
   #emit(body: EventBody): AgentEvent {
     const event = this.store.append(body);
     this.#notify(event);
@@ -158,7 +167,8 @@ export class SessionRunner {
     const run = async () => {
       let reason: Awaited<ReturnType<typeof runTurn>>;
       try {
-        reason = await runTurn({
+        const host = this.#deps.subagents;
+        const loopDeps: LoopDeps = {
           config: this.#deps.config,
           model: this.#deps.model,
           registry: this.#deps.registry,
@@ -168,7 +178,10 @@ export class SessionRunner {
           publish: (event: EphemeralEvent) => this.#notify(event),
           requestApproval: (call, signal) => this.#requestApproval(call, signal),
           signal: abort.signal,
-        });
+          runSubagent: host ? (request) => runSubagent(loopDeps, host, request) : null,
+          maxParallelTools: host?.config.maxParallel ?? 1,
+        };
+        reason = await runTurn(loopDeps);
       } catch (err) {
         const error = err instanceof Error ? err : new Error(String(err));
         this.#emit({ type: 'error', where: 'turn', message: error.message, stack: error.stack });

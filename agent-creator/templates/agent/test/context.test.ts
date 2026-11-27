@@ -67,7 +67,8 @@ test('pendingToolCalls：只回傳最後一則 assistant 訊息中尚無結果�
   const pending = pendingToolCalls(events);
   assert.deepEqual(pending.map((p) => p.call.id), ['b', 'c']);
   assert.deepEqual({ started: pending[0].started, decision: pending[0].decision }, { started: true, decision: 'allow' });
-  assert.deepEqual({ started: pending[1].started, requested: pending[1].approvalRequested }, { started: false, requested: false });
+  assert.deepEqual({ started: pending[1].started, decision: pending[1].decision }, { started: false, decision: null });
+  assert.equal(pending[0].callKey, '2-b');
 });
 
 test('planCompaction：訊息數不足時不壓縮；足夠時切點落在保留訊息之前', () => {

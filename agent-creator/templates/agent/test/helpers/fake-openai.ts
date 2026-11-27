@@ -11,7 +11,9 @@ export type ScriptedReply = {
   delayMs?: number;
 };
 
-export type RecordedRequest = { headers: IncomingHttpHeaders; body: any };
+export type RecordedRequest = { headers: IncomingHttpHeaders; body: any; at: number };
+
+export type Responder = (body: any, index: number) => ScriptedReply;
 
 export type FakeOpenAI = {
   baseURL: string;
@@ -33,18 +35,21 @@ function argumentsOf(call: ScriptedToolCall): string {
   return typeof call.arguments === 'string' ? call.arguments : JSON.stringify(call.arguments);
 }
 
-// 模擬 OpenAI 相容的 /chat/completions，依序回覆預先寫好的腳本，並記下每次請求的 header 與 body。
-export async function startFakeOpenAI(script: ScriptedReply[]): Promise<FakeOpenAI> {
+// 模擬 OpenAI 相容的 /chat/completions，並記下每次請求的 header 與 body。
+// script 是陣列時依序回覆；是函式時由函式依請求內容決定回覆（請求會同時到達、順序不固定時使用）。
+export async function startFakeOpenAI(script: ScriptedReply[] | Responder): Promise<FakeOpenAI> {
   const requests: RecordedRequest[] = [];
-  const remaining = [...script];
+  const remaining = Array.isArray(script) ? [...script] : [];
 
   const server = createServer((req, res) => {
     let raw = '';
     req.on('data', (part) => { raw += part; });
     req.on('end', async () => {
       const body = raw ? JSON.parse(raw) : {};
-      requests.push({ headers: req.headers, body });
-      const reply = remaining.shift() ?? { text: OUT_OF_SCRIPT_TEXT };
+      requests.push({ headers: req.headers, body, at: Date.now() });
+      const reply = Array.isArray(script)
+        ? remaining.shift() ?? { text: OUT_OF_SCRIPT_TEXT }
+        : script(body, requests.length - 1);
       if (reply.delayMs) await new Promise((r) => setTimeout(r, reply.delayMs));
       if (reply.status && reply.status >= 400) {
         res.writeHead(reply.status, { 'content-type': 'application/json' });

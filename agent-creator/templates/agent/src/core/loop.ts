@@ -12,11 +12,10 @@ import type {
 } from './events.ts';
 import type { SessionStore } from './store.ts';
 import { needsApproval } from './tools/approval.ts';
-import type { ToolRegistry } from './tools/registry.ts';
+import type { SubagentRequest, ToolRegistry } from './tools/registry.ts';
 
 const INLINE_HEAD_RATIO = 0.5;
 const CHARS_PER_TOKEN_FALLBACK = 3;
-const UNSAFE_FILENAME_CHARS = /[^A-Za-z0-9_-]/g;
 
 export type LoopDeps = {
   config: ResolvedConfig;
@@ -28,6 +27,8 @@ export type LoopDeps = {
   publish: (event: EphemeralEvent) => void;
   requestApproval: (call: ToolCallRecord, signal: AbortSignal) => Promise<ApprovalDecision>;
   signal: AbortSignal;
+  runSubagent: ((request: SubagentRequest) => Promise<string>) | null;
+  maxParallelTools: number;
 };
 
 function isAbortError(err: unknown): boolean {
@@ -56,7 +57,8 @@ function checkLimits(deps: LoopDeps): TurnEndReason | null {
     const output = step.usage.outputTokens ?? Math.ceil(JSON.stringify(step).length / CHARS_PER_TOKEN_FALLBACK);
     return sum + (step.usage.inputTokens ?? 0) + output;
   }, 0);
-  if (spent >= limits.maxTurnTokens) return 'token_budget';
+  const delegated = turn.reduce((sum, e) => sum + (e.type === 'subagent.finished' ? e.tokens : 0), 0);
+  if (spent + delegated >= limits.maxTurnTokens) return 'token_budget';
   return null;
 }
 
@@ -66,18 +68,19 @@ function stringifyOutput(output: unknown): string {
   return JSON.stringify(output, null, 2);
 }
 
-function storeOutput(deps: LoopDeps, callId: string, output: string): { output: string; outputPath?: string } {
+function storeOutput(deps: LoopDeps, callKey: string, output: string): { output: string; outputPath?: string } {
   const limit = deps.config.context.maxInlineToolOutputChars;
   if (output.length <= limit) return { output };
-  const outputPath = join(deps.store.toolResultsDir, `${callId.replace(UNSAFE_FILENAME_CHARS, '_')}.txt`);
+  const outputPath = join(deps.store.toolResultsDir, `${callKey}.txt`);
   writeFileSync(outputPath, output);
   const head = output.slice(0, Math.floor(limit * INLINE_HEAD_RATIO));
   const note = `\n\n[輸出共 ${output.length} 字元，以上只是開頭。完整內容在 ${outputPath}，用 read_file 搭配 offset 分段讀取]`;
   return { output: head + note, outputPath };
 }
 
-function emitResult(deps: LoopDeps, call: ToolCallRecord, ok: boolean, output: string, startedAt: number, extra: { unknownOutcome?: true } = {}): void {
-  const stored = storeOutput(deps, call.id, output);
+function emitResult(deps: LoopDeps, pending: PendingCall, ok: boolean, output: string, startedAt: number, extra: { unknownOutcome?: true } = {}): void {
+  const { call } = pending;
+  const stored = storeOutput(deps, pending.callKey, output);
   deps.emit({
     type: 'tool.result', callId: call.id, name: call.name, ok, ...stored,
     durationMs: Date.now() - startedAt, ...extra,
@@ -87,28 +90,29 @@ function emitResult(deps: LoopDeps, call: ToolCallRecord, ok: boolean, output: s
 async function settleToolCall(deps: LoopDeps, pending: PendingCall): Promise<void> {
   const { call } = pending;
   const now = Date.now();
+  const definition = deps.registry.get(call.name);
+  const resuming = pending.started && definition?.resumable === true;
 
   // 上次執行到一半行程就結束了：工具可能做完也可能沒做，重跑有重複執行的風險，所以交給模型自己判斷。
-  if (pending.started) {
-    emitResult(deps, call, false, '執行中斷，結果未知。這個工具可能已經生效也可能沒有，請先檢查實際狀態再決定是否重做。', now, { unknownOutcome: true });
+  // 標示為可接續的工具例外，它們再執行一次會從原本的進度繼續。
+  if (pending.started && !resuming) {
+    emitResult(deps, pending, false, '執行中斷，結果未知。這個工具可能已經生效也可能沒有，請先檢查實際狀態再決定是否重做。', now, { unknownOutcome: true });
     return;
   }
   if (call.invalid) {
-    emitResult(deps, call, false, `工具參數格式錯誤：${call.invalid}。請依照工具的參數定義修正後再呼叫一次。`, now);
+    emitResult(deps, pending, false, `工具參數格式錯誤：${call.invalid}。請依照工具的參數定義修正後再呼叫一次。`, now);
     return;
   }
-  const definition = deps.registry.get(call.name);
   if (!definition) {
     const available = deps.registry.list().map((t) => t.name).join('、');
-    emitResult(deps, call, false, `沒有名為 ${call.name} 的工具。可用的工具：${available}`, now);
+    emitResult(deps, pending, false, `沒有名為 ${call.name} 的工具。可用的工具：${available}`, now);
     return;
   }
 
   let decision = pending.decision;
   if (decision === null && needsApproval(definition, deps.config.approval)) {
-    if (!pending.approvalRequested) {
-      deps.emit({ type: 'tool.approval_requested', callId: call.id, name: call.name, input: call.input });
-    }
+    // 每次進入等待都發一筆新的詢問事件，前端只要認「turn.finished 之後舊的詢問全部失效」這一條規則。
+    deps.emit({ type: 'tool.approval_requested', callId: call.id, name: call.name, input: call.input });
     try {
       decision = await deps.requestApproval(call, deps.signal);
     } catch (err) {
@@ -118,24 +122,44 @@ async function settleToolCall(deps: LoopDeps, pending: PendingCall): Promise<voi
     deps.emit({ type: 'tool.approval_resolved', callId: call.id, decision });
   }
   if (decision === 'deny') {
-    emitResult(deps, call, false, '使用者拒絕執行這個工具。不要重試同一個操作，改用其他做法或詢問使用者。', now);
+    emitResult(deps, pending, false, '使用者拒絕執行這個工具。不要重試同一個操作，改用其他做法或詢問使用者。', now);
     return;
   }
 
-  deps.emit({ type: 'tool.started', callId: call.id, name: call.name });
+  if (!resuming) deps.emit({ type: 'tool.started', callId: call.id, name: call.name });
   const startedAt = Date.now();
   try {
     const output = await definition.execute(call.input, {
       callId: call.id,
+      callKey: pending.callKey,
       sessionDir: deps.store.dir,
       workspaceDir: deps.store.workspaceDir,
       toolResultsDir: deps.store.toolResultsDir,
       signal: deps.signal,
+      runSubagent: async (request) => {
+        if (!deps.runSubagent) throw new Error('這裡不能再交辦給 subagent。');
+        return deps.runSubagent(request);
+      },
     });
-    emitResult(deps, call, true, stringifyOutput(output), startedAt);
+    emitResult(deps, pending, true, stringifyOutput(output), startedAt);
   } catch (err) {
-    emitResult(deps, call, false, `工具執行失敗：${messageOf(err)}`, startedAt);
+    // 可接續的工具被中斷時不記結果，保持「已開始、未完成」，續跑時才能接著做。
+    if (definition.resumable && deps.signal.aborted) return;
+    emitResult(deps, pending, false, `工具執行失敗：${messageOf(err)}`, startedAt);
   }
+}
+
+async function settleConcurrently(deps: LoopDeps, calls: PendingCall[]): Promise<void> {
+  const queue = [...calls];
+  const worker = async () => {
+    while (queue.length > 0 && !deps.signal.aborted) {
+      await settleToolCall(deps, queue.shift() as PendingCall);
+    }
+  };
+  const workers = Array.from({ length: Math.min(deps.maxParallelTools, queue.length) }, worker);
+  const outcomes = await Promise.allSettled(workers);
+  const failed = outcomes.find((o): o is PromiseRejectedResult => o.status === 'rejected');
+  if (failed) throw failed.reason;
 }
 
 async function compactIfNeeded(deps: LoopDeps): Promise<void> {
@@ -218,10 +242,14 @@ export async function runTurn(deps: LoopDeps): Promise<TurnEndReason> {
 
     const pending = pendingToolCalls(deps.store.events);
     if (pending.length > 0) {
-      for (const call of pending) {
+      // 有副作用的工具照順序一個一個做；彼此獨立的（例如交辦給 subagent）才同時進行。
+      const isConcurrent = (p: PendingCall) => deps.registry.get(p.call.name)?.concurrent === true;
+      for (const call of pending.filter((p) => !isConcurrent(p))) {
         if (deps.signal.aborted) return 'interrupted';
         await settleToolCall(deps, call);
       }
+      await settleConcurrently(deps, pending.filter(isConcurrent));
+      if (deps.signal.aborted) return 'interrupted';
       continue;
     }
 

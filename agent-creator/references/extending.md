@@ -23,6 +23,11 @@
 | `context.keepRecentToolResults` | 壓縮時保留最近幾筆工具輸出 | 6 |
 | `context.keepRecentMessages` | 摘要時保留最近幾則訊息原文 | 8 |
 | `context.maxInlineToolOutputChars` | 工具輸出超過這個字元數就寫檔 | 8000 |
+| `subagents.enabled` | 是否提供交辦給 subagent 的能力 | `true` |
+| `subagents.maxParallel` | 最多同時進行幾個 subagent，超過的排隊 | 3 |
+| `subagents.maxPerTurn` | 一輪最多交辦幾次，超過會被拒絕 | 10 |
+| `subagents.maxSteps` | 每個 subagent 最多呼叫模型幾次 | 20 |
+| `subagents.types` | 自訂的 subagent 類型 | 只有內建的 `general` |
 | `server.port` | HTTP server 的埠號 | 4317 |
 | `server.corsOrigins` | 允許跨來源呼叫 API 的網址 | `[]` |
 
@@ -129,6 +134,46 @@ description: 產生週報。使用者要求寫週報、整理本週工作時使�
 - skill 要執行腳本時，在本文裡寫出完整指令，模型會用 `run_command` 執行（需要核准）。
 - 既有的 skill 資料夾只要格式相同，直接複製進來就能用。
 
+## Subagent
+
+主 agent 可以用 `delegate` 工具把子任務交給 subagent。subagent 在自己的上下文裡工作，主 agent 只收到它最後的報告。模型上下文不大、任務又需要讀很多資料時，這能讓主 agent 的上下文保持乾淨。
+
+內建一個 `general` 類型，可以使用所有工具。要加專門的類型：
+
+```ts
+subagents: {
+  maxParallel: 3,
+  maxPerTurn: 10,
+  types: {
+    researcher: {
+      description: '在大量檔案中查找資料並整理結論。只會讀取，不會修改任何東西。',
+      systemPrompt: '你是資料查找專員。只根據實際讀到的內容下結論，沒讀到的不要推測。',
+      tools: ['read_file', 'list_dir'],
+    },
+  },
+},
+```
+
+| 欄位 | 說明 |
+| --- | --- |
+| `description` | 寫給主 agent 看的，決定它什麼時候會選這個類型。要寫清楚適合什麼工作 |
+| `systemPrompt` | 這個類型的角色與守則。骨幹會自動附上「如何回報」的規定，不用自己寫 |
+| `tools` | 可用的工具名稱。省略表示全部。列了不存在的工具，啟動時會報錯 |
+| `model` | 這個類型改用別的模型，格式和最上層的 `model` 相同。省略表示和主 agent 相同 |
+| `maxSteps` | 這個類型的步數上限。省略表示用 `subagents.maxSteps` |
+
+運作方式：
+
+- 每個 subagent 是一個子 session，紀錄在 `sessions/<主 id>/subagents/<子 id>/events.jsonl`。
+- subagent 和主 agent **共用同一個 workspace**，產出的檔案主 agent 直接讀得到。骨幹不會阻止兩個同時進行的 subagent 寫同一個檔案，只在提示中要求主 agent 分派時避開。
+- subagent 不能再交辦給別的 subagent。
+- subagent 的寫入類工具同樣需要核准，詢問會出現在主 session，前端不需要另外處理。
+- subagent 用掉的 token 計入主 session 這一輪的 `limits.maxTurnTokens`。
+- 同一則模型回覆裡有多個 `delegate` 呼叫時才會同時進行。模型一次只發一個時，就是一個接一個。
+- 中斷後續跑，未完成的 subagent 會從原本的進度接續。
+
+用不到時設 `subagents: { enabled: false }`，可以省下系統提示與工具定義佔用的上下文。
+
 ## 核准
 
 ```ts
@@ -138,7 +183,7 @@ approval: {
 },
 ```
 
-- 內建工具中，`read_file`、`list_dir`、`load_skill` 是讀取類，不需要核准；`write_file`、`run_command` 是寫入類。
+- 內建工具中，`read_file`、`list_dir`、`load_skill`、`delegate` 是讀取類，不需要核准；`write_file`、`run_command` 是寫入類。
 - `run_command` 能執行任何指令，不受工作資料夾限制。除非在完全受控的環境，不要把它加進 `allow`。
 - 無人值守執行時用 `--yes`，等同 `mode: 'never'`。
 
@@ -176,6 +221,7 @@ await agent.close();
 | `runner.interrupt()` | 中斷目前這一輪 |
 | `runner.subscribe(函式, 起始序號)` | 先重播該序號之後的事件，再接收新事件。回傳取消訂閱的函式 |
 | `runner.whenSettled()` | 等目前這一輪結束 |
+| `runner.subagentEvents(子 id, 起始序號)` | 讀取某個 subagent 的事件，找不到回傳 `null` |
 | `runner.status`、`runner.canResume` | 目前狀態 |
 
 `sendMessage` 和 `resume` 會立刻返回，執行在背景進行，結果透過事件送出。

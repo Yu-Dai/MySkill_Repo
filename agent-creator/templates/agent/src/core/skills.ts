@@ -5,6 +5,7 @@ import { defineTool } from './tools/registry.ts';
 import type { AgentTool } from './tools/registry.ts';
 
 const SKILL_FILE = 'SKILL.md';
+export const LOAD_SKILL_TOOL_NAME = 'load_skill';
 const FRONTMATTER_FENCE = '---';
 
 export type SkillEntry = { name: string; description: string; dir: string; file: string };
@@ -54,7 +55,7 @@ export function renderSkillIndex(skills: SkillEntry[]): string {
 
 export function createLoadSkillTool(skills: SkillEntry[]): AgentTool {
   return defineTool({
-    name: 'load_skill',
+    name: LOAD_SKILL_TOOL_NAME,
     description: '讀取某個 skill 的完整說明。name 必須是系統提示裡列出的 skill 名稱。',
     risk: 'read',
     inputSchema: z.object({ name: z.string().describe('skill 名稱') }),

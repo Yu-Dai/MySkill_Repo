@@ -22,6 +22,14 @@ export default defineConfig({
 
   skillsDirs: ['./skills'],
 
+  // Subagent：主 agent 可以把子任務交給 subagent，預設開啟並內建一個通用型。
+  // 可在 types 加自己的類型，例如只給讀取類工具的研究員。不需要時設 enabled: false。
+  subagents: {
+    maxParallel: 3,
+    maxPerTurn: 10,
+    types: {},
+  },
+
   approval: {
     mode: 'ask',
     // 這裡列出的寫入類工具不需要核准，結尾可用 * 當萬用字元，例如 'myserver__*'。

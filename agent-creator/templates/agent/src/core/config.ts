@@ -35,6 +35,22 @@ export type ContextLimits = {
   maxInlineToolOutputChars: number;
 };
 
+export type SubagentType = {
+  description: string;
+  systemPrompt: string;
+  tools?: string[];
+  model?: ModelConfig | LanguageModel;
+  maxSteps?: number;
+};
+
+export type SubagentsConfig = {
+  enabled: boolean;
+  maxParallel: number;
+  maxPerTurn: number;
+  maxSteps: number;
+  types: Record<string, SubagentType>;
+};
+
 export type ServerConfig = {
   port: number;
   corsOrigins: string[];
@@ -51,6 +67,7 @@ export type AgentConfig = {
   limits?: Partial<Limits>;
   context?: Partial<ContextLimits>;
   server?: Partial<ServerConfig>;
+  subagents?: Partial<SubagentsConfig>;
 };
 
 export type ResolvedConfig = {
@@ -64,6 +81,7 @@ export type ResolvedConfig = {
   limits: Limits;
   context: ContextLimits;
   server: ServerConfig;
+  subagents: SubagentsConfig;
 };
 
 const DEFAULT_SYSTEM_PROMPT = '你是一個能使用工具完成任務的助理。先想清楚步驟，需要時才呼叫工具，完成後用簡短文字回報結果。';
@@ -87,6 +105,20 @@ export const DEFAULT_CONTEXT_LIMITS: ContextLimits = {
 
 export const DEFAULT_SERVER: ServerConfig = { port: 4317, corsOrigins: [] };
 
+export const GENERAL_SUBAGENT = 'general';
+
+const GENERAL_SUBAGENT_TYPE: SubagentType = {
+  description: '通用型。可以使用所有工具，適合需要大量閱讀、搜尋或多步驟嘗試的獨立子任務。',
+  systemPrompt: '你負責完成一項被交辦的子任務。專心把這一件事做完，不要擴大範圍。',
+};
+
+export const DEFAULT_SUBAGENTS: Omit<SubagentsConfig, 'types'> = {
+  enabled: true,
+  maxParallel: 3,
+  maxPerTurn: 10,
+  maxSteps: 20,
+};
+
 export function defineConfig(config: AgentConfig): AgentConfig {
   return config;
 }
@@ -104,6 +136,11 @@ export function resolveConfig(config: AgentConfig, baseDir: string): ResolvedCon
     limits: { ...DEFAULT_LIMITS, ...config.limits },
     context: { ...DEFAULT_CONTEXT_LIMITS, ...config.context },
     server: { ...DEFAULT_SERVER, ...config.server },
+    subagents: {
+      ...DEFAULT_SUBAGENTS,
+      ...config.subagents,
+      types: { [GENERAL_SUBAGENT]: GENERAL_SUBAGENT_TYPE, ...config.subagents?.types },
+    },
   };
 }
 

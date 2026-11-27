@@ -32,7 +32,11 @@ function preview(value: unknown): string {
   return oneLine.length > PREVIEW_CHARS ? `${oneLine.slice(0, PREVIEW_CHARS)}…` : oneLine;
 }
 
-async function askApproval(runner: SessionRunner, callId: string, name: string, input: unknown): Promise<void> {
+type ApprovalRequest = { callId: string; name: string; input: unknown; subagentId?: string };
+
+async function askApproval(runner: SessionRunner, request: ApprovalRequest): Promise<void> {
+  const { callId, name, input } = request;
+  const asker = request.subagentId ? `subagent ${request.subagentId} ` : '';
   if (!process.stdin.isTTY) {
     process.stderr.write(`\n[需要核准 ${name}，但目前不是互動式終端機，已自動拒絕。要無人值守執行請加 --yes]\n`);
     runner.approve(callId, 'deny');
@@ -40,7 +44,7 @@ async function askApproval(runner: SessionRunner, callId: string, name: string, 
   }
   const rl = createInterface({ input: process.stdin, output: process.stderr });
   try {
-    const answer = await rl.question(`\n要執行 ${name} 嗎？\n  ${preview(input)}\n  (y 允許 / 其他鍵拒絕) > `);
+    const answer = await rl.question(`\n${asker}要執行 ${name} 嗎？\n  ${preview(input)}\n  (y 允許 / 其他鍵拒絕) > `);
     runner.approve(callId, answer.trim().toLowerCase() === 'y' ? 'allow' : 'deny');
   } catch {
     runner.approve(callId, 'deny');
@@ -49,7 +53,7 @@ async function askApproval(runner: SessionRunner, callId: string, name: string, 
   }
 }
 
-function render(runner: SessionRunner, event: StreamEvent): void {
+function render(event: StreamEvent, onApprovalRequest: (request: ApprovalRequest) => void): void {
   switch (event.type) {
     case 'text.delta':
       process.stdout.write(event.text);
@@ -59,7 +63,18 @@ function render(runner: SessionRunner, event: StreamEvent): void {
       for (const call of event.toolCalls) process.stderr.write(`[工具] ${call.name} ${preview(call.input)}\n`);
       break;
     case 'tool.approval_requested':
-      void askApproval(runner, event.callId, event.name, event.input);
+      onApprovalRequest(event);
+      break;
+    case 'subagent.started':
+      process.stderr.write(`[subagent ${event.agentType}${event.resumed ? ' 接續' : ' 開始'}] ${preview(event.goal)}\n`);
+      break;
+    case 'subagent.finished':
+      process.stderr.write(`[subagent 結束：${event.reason}]\n`);
+      break;
+    case 'subagent.event':
+      if (event.event.type === 'tool.result') {
+        process.stderr.write(`  ↳ [${event.event.ok ? '完成' : '失敗'}] ${event.event.name}：${preview(event.event.output)}\n`);
+      }
       break;
     case 'tool.result':
       process.stderr.write(`[${event.ok ? '完成' : '失敗'}] ${event.name}：${preview(event.output)}\n`);
@@ -80,7 +95,12 @@ function render(runner: SessionRunner, event: StreamEvent): void {
 
 async function runUntilSettled(runner: SessionRunner, start: () => void): Promise<number> {
   const lastSeq = runner.store.events.at(-1)?.seq ?? 0;
-  const unsubscribe = runner.subscribe((event) => render(runner, event), lastSeq);
+  // 多個 subagent 可能同時要求核准，但終端機一次只能問一題，所以排隊依序詢問。
+  let approvalQueue: Promise<void> = Promise.resolve();
+  const onApprovalRequest = (request: ApprovalRequest) => {
+    approvalQueue = approvalQueue.then(() => askApproval(runner, request));
+  };
+  const unsubscribe = runner.subscribe((event) => render(event, onApprovalRequest), lastSeq);
   let interrupts = 0;
   const onSigint = () => {
     interrupts += 1;

@@ -24,6 +24,7 @@ description: 建立 AI Agent 的骨幹與使用說明（AgentCreator）。只要
 | 工具 | 內建讀檔、寫檔、列資料夾、執行指令；可加自訂工具 |
 | MCP | 在設定檔列出 MCP server 就會連線並註冊它的工具 |
 | Skill | 把 skill 資料夾放進 `skills/`，模型需要時才載入內容 |
+| Subagent | 主 agent 把子任務交給 subagent，各自有獨立的上下文，可同時進行多個，做完只交回報告 |
 | Session | 一個任務一個資料夾，可多輪對話，中斷後可續跑 |
 | 紀錄 | 每一步都寫入 `events.jsonl`，出錯時有跡可循 |
 | 上下文管理 | 過大的輸出寫檔、舊輸出省略、超過上限時自動摘要 |
@@ -55,6 +56,7 @@ npm run smoke     用真實模型跑最小情境：純文字回覆、工具呼�
 ```
 
 `npm run smoke` 有 FAIL 時，讀 `references/troubleshooting.md`。前三項沒有全部 PASS 之前不要往下做。
+第 5、6 項檢查 subagent。第 5 項 FAIL 而使用者需要 subagent 時要先解決；第 6 項 FAIL 只代表這個模型一次交辦一個，功能仍然可用。
 
 ### 4. 依使用者的需求擴充
 
@@ -66,6 +68,7 @@ npm run smoke     用真實模型跑最小情境：純文字回覆、工具呼�
 | 教 agent 一套固定的工作流程 | 在 `skills/` 新增一個 skill 資料夾 | `references/extending.md` |
 | 讓 agent 使用既有的 MCP server | 在 `agent.config.ts` 的 `mcpServers` 加一筆 | `references/extending.md` |
 | 讓 agent 能做一件新的事（查資料庫、呼叫內部 API） | 用 `defineTool` 寫自訂工具 | `references/extending.md` |
+| 讓特定類型的子任務由專門的 subagent 處理（例如只能讀取的研究員） | 在 `agent.config.ts` 的 `subagents.types` 加一種類型 | `references/extending.md` |
 | 調整步數、逾時、上下文大小、哪些工具免核准 | 改 `agent.config.ts` 的 `limits`、`context`、`approval` | `references/extending.md` |
 | 做網頁介面或接到別的系統 | 透過 HTTP API 與事件流 | `references/http-api.md`、`references/events.md` |
 | 做 HTTP 以外的前端（例如聊天軟體機器人） | 直接使用 `Agent` 與 `SessionRunner` | `references/extending.md` |

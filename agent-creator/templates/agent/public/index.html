@@ -86,6 +86,8 @@ function describe(event) {
     case 'assistant.message': return event.text + event.toolCalls.map((c) => `\n→ ${c.name} ${JSON.stringify(c.input)}`).join('');
     case 'tool.result': return `${event.name}：${event.output}`;
     case 'tool.approval_resolved': return event.decision;
+    case 'subagent.started': return `${event.agentType}${event.resumed ? '（接續）' : ''}：${event.goal}`;
+    case 'subagent.finished': return `${event.reason}，${event.tokens} tokens`;
     case 'turn.finished': return event.reason;
     case 'context.compacted': return event.summary;
     case 'error': return event.message;
@@ -101,11 +103,17 @@ function onEvent(event) {
     return;
   }
   if (event.type === 'fatal') { addRow('', 'fatal', event.message, true); return; }
+  if (event.type === 'subagent.event') {
+    const inner = event.event;
+    if (inner.type === 'tool.result' || inner.type === 'assistant.message') addRow('', '↳ ' + inner.type, describe(inner), inner.type === 'tool.result' && !inner.ok);
+    return;
+  }
   if (liveRow) { liveRow.remove(); liveRow = null; }
   const failed = event.type === 'error' || (event.type === 'tool.result' && !event.ok);
   const row = addRow(event.seq, event.type, describe(event), failed);
+  if (event.type === 'turn.finished') document.querySelectorAll('#log .row button').forEach((b) => b.remove());
   if (event.type === 'tool.approval_requested') {
-    row.lastChild.textContent = `${event.name} ${JSON.stringify(event.input)} `;
+    row.lastChild.textContent = `${event.subagentId ? '[' + event.subagentId + '] ' : ''}${event.name} ${JSON.stringify(event.input)} `;
     for (const decision of ['allow', 'deny']) {
       const button = document.createElement('button');
       button.type = 'button';
@@ -138,7 +146,8 @@ function openSession(id) {
   liveRow = null;
   source = new EventSource(`/sessions/${id}/events?token=${encodeURIComponent(token)}`);
   const types = ['session.created', 'user.message', 'turn.started', 'assistant.message', 'tool.approval_requested',
-    'tool.approval_resolved', 'tool.started', 'tool.result', 'context.compacted', 'turn.finished', 'error', 'text.delta', 'fatal'];
+    'tool.approval_resolved', 'tool.started', 'tool.result', 'context.compacted', 'turn.finished', 'error', 'text.delta', 'fatal',
+    'subagent.started', 'subagent.finished', 'subagent.event'];
   for (const type of types) source.addEventListener(type, (message) => onEvent(JSON.parse(message.data)));
   refreshStatus();
   loadSessions();

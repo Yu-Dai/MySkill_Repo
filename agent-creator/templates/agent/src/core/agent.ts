@@ -1,14 +1,17 @@
 import { mkdirSync } from 'node:fs';
 import type { LanguageModel } from '#deps';
+import { ConfigError } from './config.ts';
 import type { ResolvedConfig } from './config.ts';
 import { connectMcpServers } from './mcp.ts';
 import type { McpConnection } from './mcp.ts';
 import { createModel, modelIdOf } from './model.ts';
 import { SessionRunner } from './runner.ts';
-import { createLoadSkillTool, loadSkillIndex, renderSkillIndex } from './skills.ts';
+import { LOAD_SKILL_TOOL_NAME, createLoadSkillTool, loadSkillIndex, renderSkillIndex } from './skills.ts';
 import type { SkillEntry } from './skills.ts';
 import { SessionStore } from './store.ts';
 import type { SessionMeta } from './store.ts';
+import { DELEGATE_TOOL_NAME, SUBAGENT_RULES, createDelegateTool, delegationGuide } from './subagents.ts';
+import type { ResolvedSubagentType, SubagentHost } from './subagents.ts';
 import { createBuiltinTools } from './tools/builtin.ts';
 import { ToolRegistry } from './tools/registry.ts';
 
@@ -24,6 +27,34 @@ function environmentSection(store: SessionStore): string {
   ].join('\n');
 }
 
+function composePrompt(parts: string[]): string {
+  return parts.filter(Boolean).join('\n\n');
+}
+
+function resolveSubagents(config: ResolvedConfig, mainModel: LanguageModel, registry: ToolRegistry, skills: SkillEntry[]): SubagentHost {
+  const types = new Map<string, ResolvedSubagentType>();
+  for (const [name, definition] of Object.entries(config.subagents.types)) {
+    for (const toolName of definition.tools ?? []) {
+      if (!registry.get(toolName)) throw new ConfigError(`subagent 類型 ${name} 的 tools 列了不存在的工具：${toolName}`);
+      if (toolName === DELEGATE_TOOL_NAME) throw new ConfigError(`subagent 類型 ${name} 不能使用 ${DELEGATE_TOOL_NAME}：subagent 不能再交辦`);
+    }
+    const allowed = definition.tools ? new Set(definition.tools) : null;
+    const childRegistry = registry.subset((t) => t.name !== DELEGATE_TOOL_NAME && (allowed === null || allowed.has(t.name)));
+    const canLoadSkills = childRegistry.get(LOAD_SKILL_TOOL_NAME) !== undefined;
+    types.set(name, {
+      name,
+      description: definition.description,
+      model: definition.model ? createModel(definition.model) : mainModel,
+      registry: childRegistry,
+      maxSteps: definition.maxSteps ?? config.subagents.maxSteps,
+      promptFor: (store) => composePrompt([
+        definition.systemPrompt, SUBAGENT_RULES, environmentSection(store), canLoadSkills ? renderSkillIndex(skills) : '',
+      ]),
+    });
+  }
+  return { config: config.subagents, types };
+}
+
 export class Agent {
   readonly config: ResolvedConfig;
   readonly model: LanguageModel;
@@ -31,14 +62,16 @@ export class Agent {
   readonly skills: SkillEntry[];
   readonly mcpFailures: McpConnection['failures'];
   #mcp: McpConnection;
+  #subagents: SubagentHost | null;
   #runners = new Map<string, SessionRunner>();
 
-  private constructor(config: ResolvedConfig, model: LanguageModel, registry: ToolRegistry, skills: SkillEntry[], mcp: McpConnection) {
+  private constructor(config: ResolvedConfig, model: LanguageModel, registry: ToolRegistry, skills: SkillEntry[], mcp: McpConnection, subagents: SubagentHost | null) {
     this.config = config;
     this.model = model;
     this.registry = registry;
     this.skills = skills;
     this.#mcp = mcp;
+    this.#subagents = subagents;
     this.mcpFailures = mcp.failures;
   }
 
@@ -55,13 +88,27 @@ export class Agent {
     if (skills.length > 0) registry.register(createLoadSkillTool(skills));
     for (const definition of config.tools) registry.register(definition);
     const mcp = await connectMcpServers(config.mcpServers, registry);
-    return new Agent(config, model, registry, skills, mcp);
+
+    let subagents: SubagentHost | null = null;
+    if (config.subagents.enabled) {
+      try {
+        subagents = resolveSubagents(config, model, registry, skills);
+      } catch (err) {
+        await mcp.close();
+        throw err;
+      }
+      registry.register(createDelegateTool(subagents.types, config.subagents));
+    }
+    return new Agent(config, model, registry, skills, mcp, subagents);
   }
 
   systemPromptFor(store: SessionStore): string {
-    return [this.config.systemPrompt, environmentSection(store), renderSkillIndex(this.skills)]
-      .filter(Boolean)
-      .join('\n\n');
+    return composePrompt([
+      this.config.systemPrompt,
+      environmentSection(store),
+      renderSkillIndex(this.skills),
+      this.#subagents ? delegationGuide(this.config.subagents) : '',
+    ]);
   }
 
   #runnerFor(store: SessionStore): SessionRunner {
@@ -70,6 +117,7 @@ export class Agent {
       model: this.model,
       registry: this.registry,
       systemPromptFor: (s) => this.systemPromptFor(s),
+      subagents: this.#subagents,
     });
     this.#runners.set(store.id, runner);
     return runner;

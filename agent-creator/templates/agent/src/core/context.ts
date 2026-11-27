@@ -9,10 +9,13 @@ const SUMMARY_HEADER = '[以下是較早對話的摘要，原始內容已不在�
 
 export type PendingCall = {
   call: ToolCallRecord;
+  // 模型端給的呼叫編號不保證在整個 session 內唯一，所以加上所屬訊息的序號，作為檔名與子 session 編號的依據。
+  callKey: string;
   started: boolean;
-  approvalRequested: boolean;
   decision: ApprovalDecision | null;
 };
+
+const UNSAFE_KEY_CHARS = /[^A-Za-z0-9_-]/g;
 
 type ConversationEvent = EventOf<'user.message'> | EventOf<'assistant.message'> | EventOf<'tool.result'>;
 
@@ -42,8 +45,8 @@ export function pendingToolCalls(events: readonly AgentEvent[]): PendingCall[] {
         | undefined;
       return {
         call,
+        callKey: `${assistant.seq}-${call.id.replace(UNSAFE_KEY_CHARS, '_')}`,
         started: after.some((e) => e.type === 'tool.started' && e.callId === call.id),
-        approvalRequested: after.some((e) => e.type === 'tool.approval_requested' && e.callId === call.id),
         decision: resolved?.decision ?? null,
       };
     });

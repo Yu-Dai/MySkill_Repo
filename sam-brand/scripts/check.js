@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 /*
- * SAM UI 檢查腳本：檢查 HTML 檔是否違反介面規範。只用 Node 內建模組。
+ * SAM 品牌檢查腳本：只檢查鎖定的項目（品牌色票、Logo、不連外、不用原生控制項），
+ * 版面與風格不檢查。頁面有用元件包（sam-ui.js）時，另外檢查元件包的接線是否正確。
+ * 只用 Node 內建模組。
  *
  *   node check.js 頁面.html [其他頁面.html ...]
  *   node check.js 資料夾            檢查資料夾內所有 .html
- *   node check.js --showcase 頁面   元件展示頁專用：不檢查「一個畫面一個主要按鈕」
+ *   node check.js --no-logo 頁面    不檢查 Logo（嵌在其他頁面內的片段、iframe 內容）
  *
  * 全部通過 exit 0，有違規 exit 1，用法錯誤 exit 2。
  * 每個違規輸出四段：哪裡、為什麼、正確寫法、下一步。
@@ -17,13 +19,13 @@ const path = require('path');
 const RULES = {
   'external-url': {
     why: '執行環境在公司內網，不能連外部網路。外部網址的樣式、腳本、字體、圖片都載不到，頁面會壞掉。',
-    fix: '<link rel="stylesheet" href="assets/sam-ui.css">\n<script src="assets/vendor/chart.umd.js"></script>',
-    next: '刪掉這個外部網址。樣式、字體、圖表函式庫都已經在 assets/ 內；圖片請存成本機檔案放在頁面旁，用相對路徑。',
+    fix: '<link rel="stylesheet" href="assets/sam-brand.css">\n<script src="assets/vendor/chart.umd.js"></script>',
+    next: '刪掉這個外部網址。品牌樣式、字體、圖表函式庫都已經在 assets/ 內；要用其他字體時把字體檔放在頁面旁；圖片請存成本機檔案放在頁面旁，用相對路徑。',
   },
   'native-select': {
     why: '<select> 是瀏覽器原生外觀，每台電腦長得不一樣，也不會跟著主題變色。',
     fix: '<div class="select" data-value="a">\n  <button class="select-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-label="分類"><span class="select-value">選項 A</span><svg class="icon"><use href="#i-chevron"/></svg></button>\n  <ul class="select-menu" role="listbox">\n    <li role="option" data-value="a" aria-selected="true">選項 A</li>\n    <li role="option" data-value="b" aria-selected="false">選項 B</li>\n  </ul>\n</div>',
-    next: '把 <select> 整段換成上面的 .select。完整片段在 references/components.md 的「下拉」。值從 元素.dataset.value 讀取。',
+    next: '把 <select> 換成自訂的下拉。可以直接用元件包的 .select（上面的片段，完整說明在 references/components.md 的「下拉」），也可以自己設計，但要保留鍵盤操作與 role="listbox"。',
   },
   'native-date': {
     why: '原生日期輸入是瀏覽器原生外觀，不會跟著主題變色。',
@@ -43,17 +45,17 @@ const RULES = {
   'native-file': {
     why: '直接顯示的 input type="file" 是瀏覽器原生外觀。',
     fix: '<div class="dropzone" tabindex="0" role="button" data-list="#files">\n  <svg class="icon"><use href="#i-upload"/></svg>\n  <span><b>選擇檔案</b>，或拖放到這裡</span>\n  <input type="file" id="up" multiple>\n</div>\n<ul class="file-list" id="files"></ul>',
-    next: '把這個 <input type="file"> 放進 .dropzone 內。完整片段在 references/components.md 的「檔案上傳」。',
+    next: '把這個 <input type="file"> 放進元件包的 .dropzone（上面的片段），或自己設計：在 <input> 加上 class 並視覺隱藏，用自己的按鈕或拖放區觸發它。',
   },
   'native-checkbox': {
-    why: '沒有包在 .check 或 .switch 內的勾選框會顯示成瀏覽器原生外觀。',
+    why: '沒有重畫外觀的勾選框會顯示成瀏覽器原生外觀。',
     fix: '<label class="check"><input type="checkbox" id="ck1"><span class="box"></span>說明文字</label>\n<label class="switch"><input type="checkbox" id="sw1"><span class="track"></span>說明文字</label>',
-    next: '把這個 <input> 包成上面的寫法：一般勾選用 .check，立即生效的設定用 .switch。',
+    next: '用元件包的 .check 或 .switch（上面的片段），或自己設計：在這個 <input> 加上 class，並用 appearance:none 或視覺隱藏的方式重畫外觀。保留 <input> 本身，鍵盤與表單才會正常。',
   },
   'native-radio': {
-    why: '沒有包在 .radio 內的單選鈕會顯示成瀏覽器原生外觀。',
+    why: '沒有重畫外觀的單選鈕會顯示成瀏覽器原生外觀。',
     fix: '<label class="radio"><input type="radio" name="grp" id="rd1" checked><span class="box"></span>選項一</label>\n<label class="radio"><input type="radio" name="grp" id="rd2"><span class="box"></span>選項二</label>',
-    next: '把這個 <input> 包成上面的寫法。',
+    next: '用元件包的 .radio（上面的片段），或自己設計：在這個 <input> 加上 class，並用 appearance:none 或視覺隱藏的方式重畫外觀。',
   },
   'native-dialog': {
     why: 'alert()、confirm()、prompt() 是瀏覽器原生視窗，會中斷操作，外觀也不受控制。',
@@ -71,19 +73,19 @@ const RULES = {
     next: '刪掉這個字元。需要圖示就改用上面的 SVG 寫法；狀態請用 <span class="status ok">文字</span>。',
   },
   'hard-color': {
-    why: '寫死的顏色不會跟著淺色、深色主題切換，在另一個主題下會看不清楚。顏色只能透過代號取用。',
-    fix: 'color:var(--ink-2); background:var(--surface); border:1px solid var(--line);\n常用代號：--ink --ink-2 --ink-3（文字） --paper --surface --sunken（底色） --line --line-strong（邊線）\n          --blue --blue-strong（操作） --red（位置與待辦） --ok --warn --bad（語意） --shadow（浮層陰影）',
-    next: '把色碼換成最接近的代號 var(--代號)。完整代號表在 references/theme.md。',
+    why: '品牌色票是鎖定的。寫死的顏色會偏離品牌，也不會跟著淺色、深色主題切換。',
+    fix: 'color:var(--ink-2); background:var(--surface); border:1px solid var(--line);\n常用代號：--ink --ink-2 --ink-3（文字） --paper --surface --sunken（底色） --line --line-strong（邊線）\n          --blue --blue-strong（操作） --red（位置與待辦） --ok --warn --bad（語意） --shadow（浮層陰影）\n需要色票以外的深淺時用代號混色：color-mix(in srgb, var(--blue) 12%, var(--surface))',
+    next: '把色碼換成代號 var(--代號)，或用 color-mix() 從代號混出需要的深淺。完整代號表在 references/theme.md。',
   },
   'no-css': {
-    why: '沒有載入 sam-ui.css，所有元件都不會有樣式。',
-    fix: '<link rel="stylesheet" href="assets/sam-ui.css">',
-    next: '在 <head> 內加上這一行，並確認 assets 資料夾在頁面旁邊。',
+    why: '沒有載入 sam-brand.css，頁面拿不到品牌色票與字體代號。',
+    fix: '<link rel="stylesheet" href="assets/sam-brand.css">',
+    next: '在 <head> 內加上這一行，放在其他樣式之前，並確認 assets 資料夾在頁面旁邊（執行 scripts/new.js assets 輸出資料夾）。',
   },
   'missing-file': {
     why: '頁面引用的本機檔案不存在，離線開啟時會載不到。',
-    fix: '頁面.html\nassets/sam-ui.css\nassets/sam-ui.js\nassets/sam-chart.js\nassets/vendor/chart.umd.js\nassets/fonts/…',
-    next: '確認路徑沒有打錯。如果缺的是 assets/ 內的檔案，把 skill 資料夾內的 assets 整個複製到頁面旁邊（或重新執行 scripts/new.js）。',
+    fix: '頁面.html\nassets/sam-brand.css\nassets/logo.png\nassets/sam-ui.css\nassets/sam-ui.js\nassets/sam-chart.js\nassets/vendor/chart.umd.js\nassets/fonts/…',
+    next: '確認路徑沒有打錯。如果缺的是 assets/ 內的檔案，重新執行 scripts/new.js assets 輸出資料夾。',
   },
   'missing-symbol': {
     why: '用 <use href="#…"> 引用了圖示，但頁面內沒有這個 id 的 <symbol>，圖示會是空白。',
@@ -95,18 +97,13 @@ const RULES = {
     fix: '<body>\n<svg width="0" height="0" style="position:absolute" aria-hidden="true">\n  …assets/icons.html 的全部 <symbol>…\n</svg>',
     next: '把 assets/icons.html 的全部內容原樣貼在 <body> 開頭，不要只挑幾個。',
   },
-  'multi-primary': {
-    why: '每個畫面只能有一個主要按鈕（.btn-primary），使用者才看得出最重要的動作是哪一個。對話框內另外計算。',
-    fix: '<button class="btn btn-primary">儲存設定</button>\n<button class="btn btn-secondary">取消</button>\n<button class="btn btn-ghost">略過</button>',
-    next: '只保留最重要的那一個 .btn-primary，其他改成 .btn-secondary 或 .btn-ghost；刪除類動作用 .btn-danger。',
-  },
   'canvas-label': {
     why: '<canvas> 的內容螢幕閱讀器讀不到，必須用文字說明圖表內容。',
     fix: '<div class="chart"><canvas id="ch1" role="img" aria-label="各頻率雜訊量折線圖，120 kHz 超過門檻"></canvas></div>',
     next: '在這個 <canvas> 加上 role="img" 和說明圖表內容的 aria-label。',
   },
   'raw-chartjs': {
-    why: '直接呼叫 Chart.js 會略過主題配色與字體設定，圖表顏色不會跟著主題變。',
+    why: '這一頁載入了 sam-chart.js。直接呼叫 Chart.js 會略過它的品牌配色與字體設定，圖表顏色不會跟著主題變。',
     fix: "SAM.chart(document.getElementById('ch1'), {\n  type: 'line', labels: ['一月', '二月', '三月'],\n  series: [{ name: '數量', data: [3, 5, 4] }],\n});",
     next: '把 new Chart(…) 改成 SAM.chart(canvas, 設定)。寫法在 references/charts.md。',
   },
@@ -120,20 +117,15 @@ const RULES = {
     fix: '…頁面內容…\n<script src="assets/vendor/chart.umd.js"></script>\n<script src="assets/sam-ui.js"></script>\n<script src="assets/sam-chart.js"></script>\n<script> 頁面自己的程式 </script>\n</body>',
     next: '把這些 <script> 移到 </body> 之前，並照上面的順序排列。',
   },
+  'no-logo': {
+    why: '品牌 Logo 是鎖定的，每個頁面都要出現。',
+    fix: '<img src="assets/logo.png" alt="">',
+    next: '在頁首、導覽列或其他合適的位置放上 Logo。位置與大小可以自己設計，但不能改圖、不能用文字代替；放在深色底上時要墊一塊白底。',
+  },
   'missing-target': {
     why: '這個屬性指向另一個元素的 id，但頁面內找不到那個 id，按了不會有反應。',
     fix: '<button class="btn btn-secondary" data-open-dialog="dlg-del">…</button>\n<div class="dialog-backdrop" id="dlg-del" role="dialog" aria-modal="true">…</div>\n\n<button role="tab" data-panel="tp1">…</button>\n<div id="tp1">…</div>',
     next: '確認被指向的元素存在，而且 id 拼字完全一樣。data-open-dialog 與 data-panel 寫 id 本身；data-list 與 data-output 寫 # 加 id。',
-  },
-  'fixed-width': {
-    why: '寫死的大寬度不會隨視窗伸縮：寬螢幕兩側留一大片空白，窄螢幕出現橫向捲軸。',
-    fix: 'grid-template-columns:repeat(auto-fit,minmax(220px,1fr));   欄數隨寬度變化\nwidth:min(720px,100%);                                     有上限但不會超出容器\npadding:0 clamp(16px,3vw,48px);                            間距隨視窗伸縮',
-    next: '把固定的 px 寬度改成上面其中一種寫法，或直接刪掉讓它填滿容器。整頁的內容寬度由範本的 --content-max 控制，不要另外寫。',
-  },
-  'no-brand-bar': {
-    why: '規範要求每一頁最上方固定有一條紅藍雙色線，這是品牌識別。',
-    fix: '<div class="brand-bar"></div>',
-    next: '把這一行放在 <body> 內圖示集 <svg> 的後面、其他內容的前面。',
   },
 };
 
@@ -220,8 +212,6 @@ function checkCss(css, lineAt, add, checkColors) {
   const url = /url\(\s*["']?\s*((?:https?:)?\/\/[^"')\s]+)/gi;
   while ((m = url.exec(rest))) add('external-url', lineAt(m.index), 'url(' + m[1] + ')', '外部網址：' + m[1]);
   if (!checkColors) return;
-  const wide = /(?<![\w-])((?:max-|min-)?width)\s*:\s*(\d+)px\s*(?=[;}])/g;
-  while ((m = wide.exec(clean + ';'))) if (Number(m[2]) >= 600) add('fixed-width', lineAt(m.index), m[1] + ':' + m[2] + 'px', '寫死的寬度：' + m[2] + 'px');
   const decl = /([\w-]+)\s*:\s*([^;{}]+?)\s*(?=[;}])/g;
   while ((m = decl.exec(clean + ';'))) {
     const hit = colorIn(m[1], m[2]);
@@ -229,10 +219,11 @@ function checkCss(css, lineAt, add, checkColors) {
   }
 }
 
-function checkJs(js, lineAt, add) {
+function checkJs(js, lineAt, add, kitChart) {
   let m;
   const dlg = /(?:(?<![\w$.])|\b(?:window|self|globalThis)\.)(alert|confirm|prompt)\s*\(/g;
   while ((m = dlg.exec(js))) add('native-dialog', lineAt(m.index), js.slice(m.index, m.index + 60).split('\n')[0], '用了 ' + m[1] + '()');
+  if (!kitChart) return;
   const ch = /\bnew\s+Chart\s*\(/g;
   while ((m = ch.exec(js))) add('raw-chartjs', lineAt(m.index), js.slice(m.index, m.index + 60).split('\n')[0]);
 }
@@ -261,14 +252,16 @@ function checkFile(file, opts) {
   const ids = new Set();
   const uses = [];
   const scripts = [];
-  let cssLoaded = false, brandBar = false;
+  let cssLoaded = false, logo = false;
+  const kitChart = els.some(e => e.name === 'script' && baseName(e.attrs.src) === 'sam-chart.js');
+  const styled = e => classes(e).length > 0;
   const localRefs = [];
   const jsTexts = [];
 
   for (const el of els) {
     const A = el.attrs;
     if (A.id) ids.add(A.id);
-    if (hasClass(el, 'brand-bar')) brandBar = true;
+    if (el.name === 'img' && baseName(A.src) === 'logo.png') logo = true;
 
     // 外部資源
     const res = [];
@@ -282,7 +275,7 @@ function checkFile(file, opts) {
       if (EXTERNAL.test(u)) addEl('external-url', el, '外部網址：' + u);
       else if (u && !/^\s*(#|data:|blob:|about:|javascript:)/i.test(u) && el.name !== 'use' && !/[{}$]/.test(u)) localRefs.push({ el, u });
     }
-    if (el.name === 'link' && baseName(A.href) === 'sam-ui.css') cssLoaded = true;
+    if (el.name === 'link' && baseName(A.href) === 'sam-brand.css') cssLoaded = true;
 
     // 原生控制項
     if (el.name === 'select') addEl('native-select', el);
@@ -291,9 +284,9 @@ function checkFile(file, opts) {
       if (['date', 'datetime-local', 'month', 'week'].includes(t)) addEl('native-date', el, 'type="' + t + '"');
       if (t === 'range') addEl('native-range', el);
       if (t === 'color') addEl('native-color', el);
-      if (t === 'file' && !closest(el, e => hasClass(e, 'dropzone'))) addEl('native-file', el);
-      if (t === 'checkbox' && !closest(el, e => hasClass(e, 'check') || hasClass(e, 'switch'))) addEl('native-checkbox', el);
-      if (t === 'radio' && !closest(el, e => hasClass(e, 'radio'))) addEl('native-radio', el);
+      if (t === 'file' && !styled(el) && !closest(el, e => hasClass(e, 'dropzone'))) addEl('native-file', el);
+      if (t === 'checkbox' && !styled(el) && !closest(el, e => hasClass(e, 'check') || hasClass(e, 'switch'))) addEl('native-checkbox', el);
+      if (t === 'radio' && !styled(el) && !closest(el, e => hasClass(e, 'radio'))) addEl('native-radio', el);
     }
     if (A.title !== undefined) addEl('title-attr', el, 'title="' + A.title + '"');
 
@@ -319,11 +312,11 @@ function checkFile(file, opts) {
     if (el.name === 'style') checkCss(el.text, off => lineOf(el.textOffset + off), add, !inAssets);
 
     // 腳本
-    for (const k of Object.keys(A)) if (/^on[a-z]+$/.test(k)) checkJs(A[k], () => elLine, (r, l, s, d) => add(r, l, k + '="' + s + '"', d));
+    for (const k of Object.keys(A)) if (/^on[a-z]+$/.test(k)) checkJs(A[k], () => elLine, (r, l, s, d) => add(r, l, k + '="' + s + '"', d), kitChart);
     if (el.name === 'script') {
       scripts.push(el);
       if (!A.src && (!A.type || /javascript|module/i.test(A.type))) {
-        checkJs(el.text, off => lineOf(el.textOffset + off), add);
+        checkJs(el.text, off => lineOf(el.textOffset + off), add, kitChart);
         jsTexts.push(el.text);
         let m;
         const re = /<use[^>]*?href=\\?["']#([\w:-]+)/g;
@@ -345,13 +338,13 @@ function checkFile(file, opts) {
     }
     if (el.name === 'script' && /\.m?js$/i.test(p)) {
       const js = fs.readFileSync(p, 'utf8'), lo = makeLineOf(js);
-      checkJs(js, lo, (r, l, s, d) => add(r, l, s, d, p));
+      checkJs(js, lo, (r, l, s, d) => add(r, l, s, d, p), kitChart);
       jsTexts.push(js);
     }
   }
 
-  if (!cssLoaded) add('no-css', 1, '', '找不到 <link rel="stylesheet" href="…sam-ui.css">');
-  if (!brandBar && els.some(e => e.name === 'body')) add('no-brand-bar', lineOf((els.find(e => e.name === 'body') || { offset: 0 }).offset), '<body>');
+  if (!cssLoaded) add('no-css', 1, '', '找不到 <link rel="stylesheet" href="…sam-brand.css">');
+  if (!logo && !opts.noLogo && els.some(e => e.name === 'body')) add('no-logo', lineOf(els.find(e => e.name === 'body').offset), '<body>', '找不到 <img src="…logo.png">');
 
   // 指向其他元素的屬性
   for (const el of els) {
@@ -388,7 +381,7 @@ function checkFile(file, opts) {
   if (sUi) {
     if (closest(sUi, e => e.name === 'head')) addEl('script-order', sUi, 'sam-ui.js 放在 <head> 內');
     else {
-      const late = els.find(e => e.offset > sUi.offset && (hasClass(e, 'brand-bar') || ['main', 'header', 'nav', 'aside', 'section', 'table', 'form'].includes(e.name)));
+      const late = els.find(e => e.offset > sUi.offset && (['main', 'header', 'nav', 'aside', 'section', 'table', 'form'].includes(e.name)));
       if (late) addEl('script-order', sUi, 'sam-ui.js 後面還有頁面內容（第 ' + lineOf(late.offset) + ' 行），那些元件不會被綁定');
     }
     if (sChart && sChart.offset < sUi.offset) addEl('script-order', sChart, 'sam-chart.js 排在 sam-ui.js 前面');
@@ -397,21 +390,6 @@ function checkFile(file, opts) {
     if (early) addEl('script-order', early, '頁面自己的程式排在 sam-ui.js 前面，這時 SAM 還不存在');
     for (const id of ['i-check', 'i-chevron', 'i-file']) {
       if (!ids.has(id)) { add('icon-set', lineOf(body.offset), '<body>', '缺少 <symbol id="' + id + '">'); break; }
-    }
-  }
-
-  // 主要按鈕：每個畫面一個，對話框各自計算，隱藏中的區塊不計
-  if (!opts.showcase) {
-    const groups = new Map();
-    for (const el of els) {
-      if (!hasClass(el, 'btn-primary') || closest(el, e => e.attrs.hidden !== undefined)) continue;
-      const key = closest(el, e => hasClass(e, 'dialog-backdrop') || hasClass(e, 'dialog'));
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key).push(el);
-    }
-    for (const [key, list] of groups) {
-      if (list.length < 2) continue;
-      addEl('multi-primary', list[1], (key ? '同一個對話框' : '同一個畫面') + '有 ' + list.length + ' 個 .btn-primary，在第 ' + list.map(e => lineOf(e.offset)).join('、') + ' 行');
     }
   }
 
@@ -429,7 +407,7 @@ function iconNames() {
 
 function main() {
   const args = process.argv.slice(2);
-  const opts = { showcase: args.includes('--showcase') };
+  const opts = { noLogo: args.includes('--no-logo') };
   const inputs = args.filter(a => !a.startsWith('--'));
   if (!inputs.length) {
     console.log('用法：node check.js 頁面.html [其他頁面.html ...]');

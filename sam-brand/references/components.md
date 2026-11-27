@@ -1,7 +1,8 @@
 # 元件片段
 
-用法：找到需要的元件，把 HTML 片段整段複製到範本的「在這裡放內容」位置，再改文字與 id。
-不要自己發明 class 名稱，不要改片段的結構。同一頁內每個 id 只能出現一次。
+這是隨附元件包（`assets/sam-ui.css` 加 `assets/sam-ui.js`）的片段，要用才用；頁面也可以完全自己設計。
+用法：找到需要的元件，把 HTML 片段整段複製到頁面，再改文字與 id。
+片段的結構與 class 名稱是 `sam-ui.js` 綁定行為的依據，不要改；外觀可以在頁面的 `<style>` 內覆寫。同一頁內每個 id 只能出現一次。
 單獨的按鈕要包在 `<div class="row">` 裡面，否則會被拉成整列寬。
 
 目錄：版面輔助、圖示、按鈕、文字輸入、下拉、日期選擇器、勾選單選開關、分段選擇、滑桿、檔案上傳、
@@ -393,7 +394,7 @@ document.getElementById('dlg-del-ok').addEventListener('click', () => { SAM.toas
 
 ## 品牌元素
 
-範本已經放好，不用再加。`.brand-bar` 是頁面最上方的紅藍雙色線；Logo 放在白底的 `.logo-chip` 內。
+`.brand-bar` 是紅藍雙色線，可用可不用；Logo 放在白底的 `.logo-chip` 內，在深色底上才看得清楚。
 
 ```html
 <div class="row"><div class="logo-chip"><div class="logo-slot"><img src="assets/logo.png" alt=""></div></div></div>

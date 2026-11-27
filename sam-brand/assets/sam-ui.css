@@ -1,55 +1,5 @@
 /* SAM UI — 版面構想：紅色標示位置與待辦，藍色負責所有操作，深藍底承載品牌（導覽列與頁首）；內容區用中性冷灰，陰影只給浮層 */
-/* 隨附字體：IBM Plex（SIL OFL 1.1），只含拉丁字元。中文使用系統字體。 */
-@font-face{font-family:"IBM Plex Sans";font-weight:400;font-style:normal;font-display:swap;src:url("fonts/ibm-plex-sans-latin-400-normal.woff2") format("woff2")}
-@font-face{font-family:"IBM Plex Sans";font-weight:500;font-style:normal;font-display:swap;src:url("fonts/ibm-plex-sans-latin-500-normal.woff2") format("woff2")}
-@font-face{font-family:"IBM Plex Sans";font-weight:600;font-style:normal;font-display:swap;src:url("fonts/ibm-plex-sans-latin-600-normal.woff2") format("woff2")}
-@font-face{font-family:"IBM Plex Mono";font-weight:400;font-style:normal;font-display:swap;src:url("fonts/ibm-plex-mono-latin-400-normal.woff2") format("woff2")}
-@font-face{font-family:"IBM Plex Mono";font-weight:500;font-style:normal;font-display:swap;src:url("fonts/ibm-plex-mono-latin-500-normal.woff2") format("woff2")}
-:root{
-  --paper:#F5F6F8; --surface:#FFFFFF; --sunken:#ECEEF2;
-  --line:#DDE1E8; --line-strong:#C3C9D4;
-  --ink:#161B26; --ink-2:#4A5262; --ink-3:#7A8292;
-  --red:#CC1018; --blue:#547CBC; --blue-strong:#3B5F9E; --blue-tint:#EAF0F9;
-  --ok:#1F8A63; --ok-tint:#E4F4EC; --warn:#A86E0A; --warn-tint:#FBF1DC; --bad:#B3261E; --bad-tint:#FBE9E7;
-  --on-ink:#FFFFFF; --overlay:rgba(16,20,30,.42);
-  --blue-solid:#456DAE; --blue-solid-hover:#3B5F9E; --on-blue:#FFFFFF;
-  --navy:#1C2B4A; --navy-2:#2A3F68; --on-navy:#F1F4FA; --on-navy-2:#AEBBD4;
-  --chart-1:#547CBC; --chart-2:#1C2B4A; --chart-3:#8A93A3; --chart-4:#2A9D8F; --chart-5:#C98A1B;
-  --shadow:0 12px 32px -8px rgba(16,20,30,.22),0 2px 6px rgba(16,20,30,.08);
-  --font-sans:"IBM Plex Sans","Microsoft JhengHei","PingFang TC","Noto Sans TC",sans-serif;
-  --font-mono:"IBM Plex Mono",Consolas,"Cascadia Mono",monospace;
-  --r-control:6px; --r-box:10px; --h-control:36px;
-  color-scheme:light;
-}
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]){
-    --paper:#0F1218; --surface:#171B23; --sunken:#0B0E13;
-    --line:#272D39; --line-strong:#3A4252;
-    --ink:#E8EBF1; --ink-2:#A9B1C0; --ink-3:#737C8D;
-    --red:#E5343B; --blue:#7FA2DB; --blue-strong:#9DB9E6; --blue-tint:#1C2740;
-    --ok:#4CC08F; --ok-tint:#12291F; --warn:#E0A63A; --warn-tint:#2C2210; --bad:#F0736B; --bad-tint:#33181A;
-    --on-ink:#12151C; --overlay:rgba(0,0,0,.6);
-    --blue-solid:#7FA2DB; --blue-solid-hover:#9DB9E6; --on-blue:#0E1524;
-    --navy:#131C30; --navy-2:#22304F; --on-navy:#F1F4FA; --on-navy-2:#9AA8C3;
-    --chart-1:#7FA2DB; --chart-2:#D5DDEE; --chart-3:#7A8292; --chart-4:#4FC3B4; --chart-5:#E0A63A;
-    --shadow:0 16px 40px -8px rgba(0,0,0,.6),0 2px 6px rgba(0,0,0,.4);
-    color-scheme:dark;
-  }
-}
-:root[data-theme="dark"]{
-  --paper:#0F1218; --surface:#171B23; --sunken:#0B0E13;
-  --line:#272D39; --line-strong:#3A4252;
-  --ink:#E8EBF1; --ink-2:#A9B1C0; --ink-3:#737C8D;
-  --red:#E5343B; --blue:#7FA2DB; --blue-strong:#9DB9E6; --blue-tint:#1C2740;
-  --ok:#4CC08F; --ok-tint:#12291F; --warn:#E0A63A; --warn-tint:#2C2210; --bad:#F0736B; --bad-tint:#33181A;
-  --on-ink:#12151C; --overlay:rgba(0,0,0,.6);
-    --blue-solid:#7FA2DB; --blue-solid-hover:#9DB9E6; --on-blue:#0E1524;
-    --navy:#131C30; --navy-2:#22304F; --on-navy:#F1F4FA; --on-navy-2:#9AA8C3;
-    --chart-1:#7FA2DB; --chart-2:#D5DDEE; --chart-3:#7A8292; --chart-4:#4FC3B4; --chart-5:#E0A63A;
-  --shadow:0 16px 40px -8px rgba(0,0,0,.6),0 2px 6px rgba(0,0,0,.4);
-  color-scheme:dark;
-}
-
+/* 顏色與字體代號定義在 sam-brand.css，必須先載入它。 */
 *,*::before,*::after{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{margin:0}

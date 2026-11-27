@@ -4,11 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>頁面標題</title>
+<link rel="stylesheet" href="assets/sam-brand.css">
 <link rel="stylesheet" href="assets/sam-ui.css">
 <style>
 /* 內容區最大寬度：預設 none，隨視窗伸縮。以閱讀長文為主的頁面可以改成 1280px */
 :root{--content-max:none}
-/* 版面：左側導覽固定，右側內容捲動；窄螢幕時導覽變成頂部橫列。以下不要改 */
+/* 版面：左側導覽固定，右側內容捲動；窄螢幕時導覽變成頂部橫列。可以依設計調整 */
 html,body{height:100%}
 .shell{display:grid;grid-template-columns:clamp(208px,16vw,272px) minmax(0,1fr);min-height:calc(100% - 3px)}
 .side{display:flex;flex-direction:column;gap:20px;padding:20px 12px;background:var(--navy);color:var(--on-navy)}
@@ -37,7 +38,7 @@ html,body{height:100%}
 }
 .logo-slot{border:0}
 .main>.btn,.main>.menu-wrap,.main>.segmented,.main>.status,.main>.tag{align-self:flex-start}
-/* 在這裡加頁面自己的樣式。顏色只能寫 var(--代號)，不能寫色碼 */
+/* 在這裡加頁面自己的樣式。顏色只能寫 var(--代號) 或用 color-mix() 從代號混色，不能寫色碼 */
 </style>
 </head>
 <body>
@@ -65,7 +66,7 @@ html,body{height:100%}
 <div class="brand-bar"></div>
 <div class="shell">
   <aside class="side">
-    <!-- 在這裡改工具名稱。Logo 位置不要動 -->
+    <!-- 在這裡改工具名稱。Logo 要保留，位置可以調整 -->
     <div class="brand"><div class="logo-chip"><div class="logo-slot"><img src="assets/logo.png" alt=""></div></div><div><b>工具名稱</b><span>副標題</span></div></div>
     <!-- 在這裡改導覽項目。目前所在的那一項加 aria-current="page"，只能有一項 -->
     <nav class="nav" aria-label="主要導覽">
@@ -82,7 +83,7 @@ html,body{height:100%}
     </div>
 
     <div class="head">
-      <!-- 在這裡改頁面標題與說明。整頁只能有一個 btn-primary，不需要就刪掉這個按鈕 -->
+      <!-- 在這裡改頁面標題與說明。不需要就刪掉這個按鈕 -->
       <div><h1>頁面標題</h1><p class="muted">一句話說明這一頁可以做什麼。</p></div>
       <button class="btn btn-primary"><svg class="icon"><use href="#i-plus"/></svg>主要動作</button>
     </div>

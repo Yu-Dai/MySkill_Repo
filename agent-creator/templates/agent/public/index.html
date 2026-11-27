@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent API 測試頁</title>
+<style>
+  :root { color-scheme: light dark; font-family: system-ui, "Microsoft JhengHei", sans-serif; }
+  body { margin: 0; display: grid; grid-template-columns: 280px 1fr; height: 100vh; }
+  aside { border-right: 1px solid color-mix(in srgb, currentColor 20%, transparent); overflow: auto; padding: 12px; }
+  main { display: grid; grid-template-rows: auto 1fr auto; min-width: 0; }
+  header, footer { padding: 12px; border-bottom: 1px solid color-mix(in srgb, currentColor 20%, transparent); }
+  footer { border-bottom: 0; border-top: 1px solid color-mix(in srgb, currentColor 20%, transparent); display: flex; gap: 8px; }
+  #log { overflow: auto; padding: 12px; font: 13px/1.5 ui-monospace, Consolas, monospace; }
+  .row { padding: 4px 0; border-bottom: 1px dashed color-mix(in srgb, currentColor 12%, transparent); white-space: pre-wrap; word-break: break-word; }
+  .type { font-weight: 600; margin-right: 8px; }
+  .seq { opacity: .55; margin-right: 8px; }
+  .live { opacity: .7; }
+  .fail { color: #c0392b; }
+  button { font: inherit; padding: 4px 10px; cursor: pointer; }
+  input[type=text] { font: inherit; padding: 6px 8px; flex: 1; min-width: 0; }
+  .session { display: block; width: 100%; text-align: left; margin: 4px 0; }
+  .session[aria-current=true] { outline: 2px solid currentColor; }
+  small { opacity: .7; }
+  @media (max-width: 700px) { body { grid-template-columns: 1fr; grid-template-rows: 200px 1fr; } aside { border-right: 0; } }
+</style>
+</head>
+<body>
+<aside>
+  <strong>Sessions</strong> <button id="refresh" type="button">重新整理</button>
+  <div id="sessions"></div>
+  <p><small>這一頁只用來確認 API 能通，不是正式介面。</small></p>
+</aside>
+<main>
+  <header>
+    <span id="title">尚未選擇 session</span>
+    <small id="status"></small>
+    <button id="interrupt" type="button" hidden>中斷</button>
+    <button id="resume" type="button" hidden>續跑</button>
+  </header>
+  <div id="log"></div>
+  <footer>
+    <input id="text" type="text" placeholder="輸入任務或追加訊息" autocomplete="off">
+    <button id="send" type="button">送出</button>
+    <button id="create" type="button">開新任務</button>
+  </footer>
+</main>
+<script>
+const token = new URLSearchParams(location.search).get('token') ?? '';
+const $ = (id) => document.getElementById(id);
+let currentId = null;
+let source = null;
+let liveRow = null;
+
+async function api(path, method = 'GET', body) {
+  const response = await fetch(path, {
+    method,
+    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) addRow('', 'http ' + response.status, data.error?.message ?? '請求失敗', true);
+  return { ok: response.ok, data };
+}
+
+function addRow(seq, type, text, failed = false) {
+  const row = document.createElement('div');
+  row.className = 'row' + (failed ? ' fail' : '');
+  const seqEl = document.createElement('span');
+  seqEl.className = 'seq';
+  seqEl.textContent = seq === '' ? '' : '#' + seq;
+  const typeEl = document.createElement('span');
+  typeEl.className = 'type';
+  typeEl.textContent = type;
+  const textEl = document.createElement('span');
+  textEl.textContent = text;
+  row.append(seqEl, typeEl, textEl);
+  $('log').append(row);
+  $('log').scrollTop = $('log').scrollHeight;
+  return row;
+}
+
+function describe(event) {
+  switch (event.type) {
+    case 'user.message': return event.text;
+    case 'assistant.message': return event.text + event.toolCalls.map((c) => `\n→ ${c.name} ${JSON.stringify(c.input)}`).join('');
+    case 'tool.result': return `${event.name}：${event.output}`;
+    case 'tool.approval_resolved': return event.decision;
+    case 'turn.finished': return event.reason;
+    case 'context.compacted': return event.summary;
+    case 'error': return event.message;
+    default: return '';
+  }
+}
+
+function onEvent(event) {
+  if (event.type === 'text.delta') {
+    if (!liveRow) liveRow = addRow('', '生成中', '');
+    liveRow.classList.add('live');
+    liveRow.lastChild.textContent += event.text;
+    return;
+  }
+  if (event.type === 'fatal') { addRow('', 'fatal', event.message, true); return; }
+  if (liveRow) { liveRow.remove(); liveRow = null; }
+  const failed = event.type === 'error' || (event.type === 'tool.result' && !event.ok);
+  const row = addRow(event.seq, event.type, describe(event), failed);
+  if (event.type === 'tool.approval_requested') {
+    row.lastChild.textContent = `${event.name} ${JSON.stringify(event.input)} `;
+    for (const decision of ['allow', 'deny']) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = decision === 'allow' ? '允許' : '拒絕';
+      button.onclick = async () => {
+        const result = await api(`/sessions/${currentId}/approvals/${encodeURIComponent(event.callId)}`, 'POST', { decision });
+        if (result.ok) row.querySelectorAll('button').forEach((b) => b.remove());
+      };
+      row.append(button, ' ');
+    }
+  }
+  if (event.type === 'turn.started' || event.type === 'turn.finished' || event.type.startsWith('tool.approval')) refreshStatus();
+}
+
+async function refreshStatus() {
+  if (!currentId) return;
+  const { ok, data } = await api(`/sessions/${currentId}`);
+  if (!ok) return;
+  $('title').textContent = data.title;
+  $('status').textContent = ` ${data.status}`;
+  const active = data.status === 'running' || data.status === 'waiting_approval';
+  $('interrupt').hidden = !active;
+  $('resume').hidden = !data.canResume;
+}
+
+function openSession(id) {
+  currentId = id;
+  source?.close();
+  $('log').textContent = '';
+  liveRow = null;
+  source = new EventSource(`/sessions/${id}/events?token=${encodeURIComponent(token)}`);
+  const types = ['session.created', 'user.message', 'turn.started', 'assistant.message', 'tool.approval_requested',
+    'tool.approval_resolved', 'tool.started', 'tool.result', 'context.compacted', 'turn.finished', 'error', 'text.delta', 'fatal'];
+  for (const type of types) source.addEventListener(type, (message) => onEvent(JSON.parse(message.data)));
+  refreshStatus();
+  loadSessions();
+}
+
+async function loadSessions() {
+  const { ok, data } = await api('/sessions');
+  if (!ok) return;
+  $('sessions').textContent = '';
+  for (const session of data.sessions) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'session';
+    button.setAttribute('aria-current', String(session.id === currentId));
+    button.textContent = `${session.title || session.id}\n${session.status}`;
+    button.onclick = () => openSession(session.id);
+    $('sessions').append(button);
+  }
+}
+
+$('create').onclick = async () => {
+  const message = $('text').value.trim();
+  if (!message) return;
+  const { ok, data } = await api('/sessions', 'POST', { message });
+  if (ok) { $('text').value = ''; openSession(data.id); }
+};
+$('send').onclick = async () => {
+  const text = $('text').value.trim();
+  if (!text || !currentId) return;
+  const { ok } = await api(`/sessions/${currentId}/messages`, 'POST', { text });
+  if (ok) $('text').value = '';
+};
+$('interrupt').onclick = () => api(`/sessions/${currentId}/interrupt`, 'POST');
+$('resume').onclick = () => api(`/sessions/${currentId}/resume`, 'POST');
+$('refresh').onclick = loadSessions;
+if (!token) addRow('', '提示', '網址缺少 ?token=，請用啟動 server 時印出的測試頁網址開啟。', true);
+loadSessions();
+</script>
+</body>
+</html>

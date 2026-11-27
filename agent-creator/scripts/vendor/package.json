@@ -1,0 +1,22 @@
+{
+  "name": "agent-creator-vendor-build",
+  "private": true,
+  "type": "module",
+  "description": "只用來重新打包 templates/agent/vendor/deps.mjs，需要連外網路",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "dependencies": {
+    "@ai-sdk/mcp": "2.0.106",
+    "@ai-sdk/openai-compatible": "3.0.96",
+    "@hono/node-server": "2.1.11",
+    "ai": "7.0.183",
+    "hono": "4.13.23",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.11",
+    "esbuild": "0.28.2",
+    "typescript": "7.0.2"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "my-agent",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22.18" },
+  "imports": { "#deps": "./vendor/deps.mjs" },
+  "scripts": {
+    "agent": "node src/cli.ts",
+    "serve": "node src/cli.ts serve",
+    "test": "node --test \"test/*.test.ts\"",
+    "smoke": "node scripts/smoke.ts"
+  }
+}
